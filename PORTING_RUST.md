@@ -735,3 +735,57 @@ deferred.
   `chat_template.jinja` in the repo tree.
 
 Rust work begins at Stage 1 against `semif-rs/fixtures/`.
+
+### Stage 1 — complete (2026-09-24)
+
+Cargo workspace landed in `semif-rs/` (four crates, edition 2024, rust 1.93,
+`serde_json/preserve_order` workspace-wide, no async — SemIf is a batch CLI,
+not a server). Every Stage 1 gate green; clippy 0 warnings; `cargo fmt` clean;
+27 Rust tests passing. Committed in three deliverable commits.
+
+- **Crates**: `semif-types` (Python-shaped value model + validation with the
+  pinned check order and message strings), `semif-core` (Python-compatible
+  parser, `repr(float)` formatter incl. exponent thresholds, the two
+  `json.dumps` writer profiles, f64 softmax, sha256, the pinned Qwen3.5
+  template renderer, the tokenizer harness with truncation/padding detached,
+  state-prefix extraction), `semif-engine` (Engine trait + uniform-probability
+  stub that still runs the real prompt/token/slot pipeline), `semif-cli`
+  (clap; create-only output, flush-per-row, validation order mirroring
+  `cli.py`).
+- **Gates** (all over the Python-authored fixtures, in-tree as Rust tests):
+  prompt byte-equality **307/307**; token+slot+prefix parity **307/307**;
+  validation/encode verdicts **322/322** (incl. the accepted `refuse-empty-id`
+  quirk); float repr 30, dumps profiles 9, softmax vectors 8; CLI refusal
+  contract 6 cases (rc + output-not-created + exact row-level ValueError
+  lines); and the headline wire gate — **stub rows byte-identical 307/307**
+  (`fixtures/stubs.jsonl` vs the Rust CLI over `inputs-accepted.jsonl`).
+- **New fixtures** (`benchmarks/export_logic_fixtures.py`, committed):
+  `logic.json` (float reprs, both dumps profiles, softmax cases), plus
+  `stubs.jsonl`/`inputs-accepted.jsonl` for the wire gate. The Python stub
+  envelope mirrors `StubEngine` exactly (direct-shape row, 1/K probabilities,
+  zero logits, no timing fields).
+- **Findings**:
+  1. The chat template's `render_content(...)|trim` filter is applied to both
+     system and user content — a no-op for our payloads (they start `{`, end
+     `}`), implemented anyway and pinned.
+  2. Python's default `json.dumps` separators are `", "` / `": "` — the
+     prompt payload and output rows are *spaced* JSON, not compact; the
+     two writer profiles reproduce this and are byte-gated.
+  3. Fixture files are themselves Python-flavored JSON (NaN literals in
+     `inputs.jsonl`/`logic.json`), so the Rust tests read them with the
+     crate's own parser — the parser is dogfooded by its own gate.
+  4. Tokenizer parity confirmed cross-implementation: the `tokenizers` crate
+     (0.23, truncation detached) reproduces Python's token IDs, slot IDs,
+     boundary checks, and prefix extraction on all 307 rows — the von
+     truncation trap was real here too (`tokenizer.json` ships baked
+     truncation that Python never applies).
+- **Accepted divergences (documented)**: usage-error wrapper text (clap vs
+  argparse — messages bodies match, rc and behavior pinned); uncaught
+  tracebacks render as a single `ValueError: …` line (rc 1, message pinned);
+  lone UTF-16 surrogates in input JSON map to U+FFFD where Python would carry
+  them to a later encode failure (same rc 1 envelope); `str.splitlines()`'s
+  exotic separators beyond \r\n are not split boundaries.
+
+Stage 2 next: the llama.cpp CPU engine behind the `Engine` trait, gated on
+the `logits-cpufp32`/`logits-gguf` probe captures (≤1e-5 vs the Python GGUF
+backend, 100% decision agreement on the probe corpus).
