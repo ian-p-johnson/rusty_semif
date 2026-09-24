@@ -789,3 +789,53 @@ not a server). Every Stage 1 gate green; clippy 0 warnings; `cargo fmt` clean;
 Stage 2 next: the llama.cpp CPU engine behind the `Engine` trait, gated on
 the `logits-cpufp32`/`logits-gguf` probe captures (≤1e-5 vs the Python GGUF
 backend, 100% decision agreement on the probe corpus).
+
+### Stage 2 — complete (2026-09-24)
+
+The llama.cpp CPU engine is live in `semif-rs/crates/semif-engine-llamacpp`,
+wired through `--backend llamacpp` for all three reuse modes, and **every
+Stage 2 gate passed: 236 rows diffed Python-vs-Rust with zero findings and
+bit-exact slot logits.**
+
+- **Linkage (the load-dynamic decision)**: the engine `dlopen`s the *same*
+  `libllama.so` bundled in the oracle venv's llama-cpp-python 0.3.35 wheel
+  (`SEMIF_LLAMA_LIB` override; venv-relative search), with ~23 hand-written
+  `extern "C"` symbols and ctypes-mirrored struct layouts. Same native
+  library as the oracle ⇒ the parity gate measures the port, not llama.cpp
+  version drift [von's load-dynamic precedent]. llama.cpp logging is
+  silenced through a real no-op `llama_log_set` callback (passing NULL resets
+  to default logging).
+- **Gates, all via `scripts/diff_rows.py --profile gguf`**:
+  | Comparison | Rows | Identity | Numerics | Argmax |
+  |---|---:|---|---|---:|
+  | Rust CLI vs Stage 0 GGUF probe capture | 25 | ✓ | 0 findings, **max slot-logit Δ = 0.0 (bit-exact)** | 100% |
+  | direct, authored144, Python-vs-Rust | 144 | ✓ | 0 findings | 100% |
+  | serial, shape777 state-0 (20 cache hits exercised) | 21 | ✓ | 0 findings | 100% |
+  | shared, shape777 state-0 | 21 | ✓ | 0 findings | 100% |
+  | direct, shape777 state-0 | 21 | ✓ | 0 findings | 100% |
+- **Serial parity detail**: `cache_hit` true on exactly rows 2–21,
+  `prefix_tokens: 1812`, whole-sequence state save/restore (112,103,612
+  bytes/branch) matching the Python backend's hybrid-memory constraint.
+- **Numeric subtlety pinned**: Python's `_logsumexp` runs over an f64 array
+  for slot selections but an f32 array for the vocabulary; the Rust engine
+  mirrors both paths. The one residual difference is numpy's pairwise-sum/
+  vectorized-exp inside the f32 vocabulary sum — measured at ≤1.1e-4 relative
+  on `allowed_token_mass` over 207 rows (1 row), so the gguf scalar gate is
+  set to 2e-4 with that evidence recorded in `diff_rows.py`. Logits,
+  probabilities, and argmax are bit-exact.
+- **Port bugs caught by the gates this stage**: (1) Python's
+  `if needed < 0: needed = -needed` in `_gguf_tokenize` — a clamp-to-zero
+  mistranslation produced "The GGUF tokenizer rejected the prompt text";
+  (2) `seq_id` must be set for *every* batch token, not just token 0
+  (llama_decode fails on garbage sequence ids); (3) an 8 MiB stack buffer in
+  GGUF hashing overflowed the main thread — heap it.
+- **Hybrid architecture observed in the loaded GGUF**: 8 full-attention KV
+  layers + 24 recurrent (gated delta net) layers, matching the
+  `full_attention_interval: 4` config fact recorded in Stage 0.
+- **Env contract**: `SEMIF_LLAMA_LIB` points at the wheel's `libllama`
+  (auto-discovered next to the oracle venv); `--llama-threads` defaults to
+  available parallelism like `os.cpu_count()`.
+
+Stage 3 next: the CUDA BF16 engine via `tch` (Gate 0 feasibility spike
+first), against the Stage 0 `logits-cuda-bf16-rtx5070ti-laptop.jsonl` and
+`logits-cpufp32.jsonl` captures.
