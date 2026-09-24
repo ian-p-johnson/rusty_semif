@@ -1,0 +1,3 @@
+{"case": "cli-row-valueerror", "returncode": 1, "stderr_last_line": "ValueError: Option IDs must be unique", "output_created": false}
+{"case": "cli-existing-output", "returncode": 2, "stderr_last_line": "cli.py: error: Output must be new and max-tokens must be positive", "output_created": false}
+{"case": "cli-empty-input", "returncode": 2, "stderr_last_line": "cli.py: error: Input is empty", "output_created": false}

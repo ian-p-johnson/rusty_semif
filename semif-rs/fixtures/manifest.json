@@ -1,0 +1,10 @@
+{
+  "schema": "semif-stage0-fixtures-v1",
+  "model_source": "Qwen/Qwen3.5-4B",
+  "model_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "loader_source": "/media/ianj/New Volume/hf-plain/models/Qwen_Qwen3.5-4B",
+  "max_tokens": 4096,
+  "transformers_version": "5.17.0",
+  "tokenizers_version": "0.23.2",
+  "python_version": "3.12.3"
+}
