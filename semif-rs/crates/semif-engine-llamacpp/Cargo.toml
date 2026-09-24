@@ -1,17 +1,13 @@
 [package]
-name = "semif-cli"
+name = "semif-engine-llamacpp"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-
-[[bin]]
-name = "semif-cli"
-path = "src/main.rs"
 
 [dependencies]
 semif-types = { workspace = true }
 semif-core = { workspace = true }
 semif-engine = { workspace = true }
-semif-engine-llamacpp = { workspace = true }
-clap = { workspace = true }
+sha2 = { workspace = true }
 thiserror = { workspace = true }
+libloading = "0.8"

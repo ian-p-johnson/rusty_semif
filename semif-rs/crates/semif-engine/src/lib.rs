@@ -1,11 +1,9 @@
-//! Engine seam: modes request one result row per input row.
+//! Engine seam: the CLI dispatches per backend and mode.
 //!
-//! Stage 1 ships only the structure-faithful stub; real backends (llama.cpp,
-//! tch/CUDA) land in Stages 2–3 behind this trait. The stub still runs the
-//! full prompt/token/slot pipeline so identity fields (`prompt_sha256`,
-//! `input_tokens`) are real; only the readout is synthetic.
+//! Stage 2: `LlamacppEngine` (real) for `--backend llamacpp`; the stub engine
+//! remains the placeholder for torch/mlx until Stages 3+.
 
-use semif_core::tokenizer::{ReferenceTokenizer, ScorerError, encode_prompt};
+use semif_core::tokenizer::{ReferenceTokenizer, ScorerError};
 use semif_types::PyValue;
 
 pub struct ScoreContext<'a> {
@@ -17,17 +15,33 @@ pub struct ScoreContext<'a> {
 }
 
 pub trait Engine {
-    fn score(&self, row: &PyValue, context: &ScoreContext<'_>) -> Result<PyValue, ScorerError>;
+    fn score_direct(
+        &self,
+        row: &PyValue,
+        context: &ScoreContext<'_>,
+    ) -> Result<PyValue, ScorerError>;
+    fn score_serial(
+        &mut self,
+        row: &PyValue,
+        context: &ScoreContext<'_>,
+    ) -> Result<PyValue, ScorerError>;
+    fn score_shared(
+        &mut self,
+        rows: &[PyValue],
+        context: &ScoreContext<'_>,
+    ) -> Result<(Vec<PyValue>, Option<PyValue>), ScorerError>;
 }
 
 /// Uniform-probability stub: `probabilities = 1/K`, `option_logits = 0.0`.
 /// The envelope mirrors `direct.score` minus timing fields; byte parity is
-/// pinned by `fixtures/stubs.jsonl`.
+/// pinned by `fixtures/stubs.jsonl`. Serial/shared reuse the same envelope
+/// (no timing block) until real backends land for those backends.
 pub struct StubEngine;
 
-impl Engine for StubEngine {
-    fn score(&self, row: &PyValue, context: &ScoreContext<'_>) -> Result<PyValue, ScorerError> {
-        let (ids, _slots, prompt_hash) = encode_prompt(context.tokenizer, row, context.max_tokens)?;
+impl StubEngine {
+    fn stub_row(&self, row: &PyValue, context: &ScoreContext<'_>) -> Result<PyValue, ScorerError> {
+        let (ids, _slots, prompt_hash) =
+            semif_core::tokenizer::encode_prompt(context.tokenizer, row, context.max_tokens)?;
         let options = row
             .get("options")
             .and_then(PyValue::as_array)
@@ -44,8 +58,7 @@ impl Engine for StubEngine {
                 )
             })
             .collect();
-        let count = option_ids.len() as f64;
-        let uniform = 1.0 / count;
+        let uniform = 1.0 / option_ids.len() as f64;
         let row_id = row.get("id").and_then(PyValue::as_str).unwrap_or_default();
         Ok(PyValue::Object(vec![
             ("id".into(), PyValue::Str(row_id.into())),
@@ -82,5 +95,36 @@ impl Engine for StubEngine {
                 PyValue::Str("stub; not a model score".into()),
             ),
         ]))
+    }
+}
+
+impl Engine for StubEngine {
+    fn score_direct(
+        &self,
+        row: &PyValue,
+        context: &ScoreContext<'_>,
+    ) -> Result<PyValue, ScorerError> {
+        self.stub_row(row, context)
+    }
+
+    fn score_serial(
+        &mut self,
+        row: &PyValue,
+        context: &ScoreContext<'_>,
+    ) -> Result<PyValue, ScorerError> {
+        self.stub_row(row, context)
+    }
+
+    fn score_shared(
+        &mut self,
+        rows: &[PyValue],
+        context: &ScoreContext<'_>,
+    ) -> Result<(Vec<PyValue>, Option<PyValue>), ScorerError> {
+        Ok((
+            rows.iter()
+                .map(|row| self.stub_row(row, context))
+                .collect::<Result<Vec<_>, _>>()?,
+            None,
+        ))
     }
 }

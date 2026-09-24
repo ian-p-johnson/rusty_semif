@@ -1,4 +1,5 @@
-//! Create-only JSONL command line scorer (Rust port, Stage 1: stub engine).
+//! Create-only JSONL command line scorer (Rust port; llamacpp engine real,
+//! torch/mlx backends remain stubs until Stages 3+).
 
 mod args;
 
@@ -7,7 +8,7 @@ use clap::Parser as _;
 use semif_core::parse;
 use semif_core::pyjson::dumps_output;
 use semif_core::tokenizer::{ReferenceTokenizer, ScorerError};
-use semif_engine::{Engine, ScoreContext, StubEngine};
+use semif_engine::{ScoreContext, StubEngine};
 use semif_types::PyValue;
 use std::io::Write;
 use std::path::Path;
@@ -58,10 +59,27 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     let rows = read_rows(&args.input);
 
     let tokenizer = ReferenceTokenizer::from_checkpoint_dir(Path::new(&args.model))?;
-    let engine = StubEngine;
+    let threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4);
+    let mut engine: Box<dyn semif_engine::Engine> = if args.backend == "llamacpp" {
+        let gguf = args.gguf.clone().expect("validated");
+        let library_path = semif_engine_llamacpp::LlamacppEngine::default_library_path()?;
+        Box::new(semif_engine_llamacpp::LlamacppEngine::new(
+            &library_path,
+            &gguf,
+            &tokenizer,
+            threads,
+            args.max_tokens as usize,
+            &args.model,
+            &args.revision,
+        )?)
+    } else {
+        Box::new(StubEngine)
+    };
     let context = ScoreContext {
         tokenizer: &tokenizer,
-        max_tokens: args.max_tokens.max(0) as usize,
+        max_tokens: args.max_tokens as usize,
         source: args.model.clone(),
         revision: args.revision.clone(),
         dtype: args.dtype.clone(),
@@ -72,8 +90,26 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         .create_new(true)
         .open(&args.output)?;
     let mut writer = std::io::BufWriter::new(destination);
+    if args.mode == "shared" {
+        let (results, timing) = engine.score_shared(&rows, &context)?;
+        for result in results {
+            let mut row = result;
+            if let (Some(timing), PyValue::Object(entries)) = (&timing, &mut row) {
+                entries.push(("shared_timing".into(), timing.clone()));
+            }
+            writer.write_all(dumps_output(&row)?.as_bytes())?;
+            writer.write_all(b"\n")?;
+            writer.flush()?;
+        }
+        return Ok(());
+    }
     for row in &rows {
-        match engine.score(row, &context) {
+        let outcome = if args.mode == "serial" {
+            engine.score_serial(row, &context)
+        } else {
+            engine.score_direct(row, &context)
+        };
+        match outcome {
             Ok(result) => {
                 writer.write_all(dumps_output(&result)?.as_bytes())?;
                 writer.write_all(b"\n")?;
