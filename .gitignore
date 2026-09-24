@@ -9,3 +9,6 @@ results*.jsonl
 reranker-results*.jsonl
 models/
 cache/
+
+# Rust build artifacts
+semif-rs/target/

@@ -1,0 +1,16 @@
+[package]
+name = "semif-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "semif-cli"
+path = "src/main.rs"
+
+[dependencies]
+semif-types = { workspace = true }
+semif-core = { workspace = true }
+semif-engine = { workspace = true }
+clap = { workspace = true }
+thiserror = { workspace = true }

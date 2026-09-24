@@ -1,0 +1,30 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/semif-types",
+    "crates/semif-core",
+    "crates/semif-engine",
+    "crates/semif-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+indexmap = { version = "2", features = ["serde"] }
+thiserror = "2"
+clap = { version = "4", features = ["derive"] }
+tokenizers = "0.23"
+sha2 = "0.10"
+
+semif-types = { path = "crates/semif-types" }
+semif-core = { path = "crates/semif-core" }
+semif-engine = { path = "crates/semif-engine" }
+
+[profile.release]
+strip = true
+lto = "thin"

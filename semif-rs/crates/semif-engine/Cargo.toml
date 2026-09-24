@@ -1,0 +1,9 @@
+[package]
+name = "semif-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+semif-types = { workspace = true }
+semif-core = { workspace = true }
