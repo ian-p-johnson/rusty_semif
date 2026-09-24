@@ -1,0 +1,13 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "gguf",
+  "file_a": "../semif-rs/runs/rust-gguf-serial-shape21.jsonl",
+  "file_b": "../semif-rs/runs/py-gguf-serial-shape21.jsonl",
+  "rows_compared": 21,
+  "identity_ok": true,
+  "numeric_ok": true,
+  "argmax_agreement": 1.0,
+  "full_vocab_argmax_agreement": 1.0,
+  "finding_count": 0,
+  "findings": []
+}
