@@ -676,6 +676,62 @@ CPU/GGUF path. Measure and report (Stage 4 ledger); don't optimize.
 
 ## 10. Progress log
 
-*No stages executed yet. This document is the assessment and plan only;
-the working tree is otherwise untouched (integrity gates verified clean at
-assessment time: `results/raw/SHA256SUMS` OK, `verify_published.py` 69/69).*
+### Stage 0 — complete (2026-09-24)
+
+Oracle instrumented; every exit criterion met. Two caveats recorded up front:
+captures ran while two unrelated heavy tasks loaded the machine, so **all
+timing fields are void** (numerics unaffected — same kernels, same math) and
+the informational timing baseline is **deferred** to an idle-machine window;
+and the CPU fp32 / GGUF probes cover a pinned 25-row subset (10 edge + 3 owned
++ 9 authored originals + 3 shape777 state-0 rows), with the full CPU corpus
+deferred.
+
+- **Oracle environment**: venv per `docs/REPRODUCE.md`; `pytest -q` **68 passed,
+  2 skipped** (MLX and MPS — platform-impossible here; the llamacpp test runs
+  green against the real GGUF via `SEMIF_LLAMACPP_GGUF`). Integrity gates clean
+  at exit: `results/raw/SHA256SUMS` OK, `verify_published.py` 69/69.
+- **Checkpoints**: the `hf` client stalled on this link (~3.5 KB/s via xet);
+  replaced with resumable curl into a plain local dir
+  (`/media/ianj/New Volume/hf-plain/`), every artifact sha256-verified against
+  its LFS etag (both shards + the pinned Q4_K_M GGUF). HF cache relocated to
+  the big drive (`New Volume/hf-cache`) — the root disk is 98% full; von/laya
+  caches untouched.
+- **Fixtures** (`semif-rs/fixtures/`, commit `00ffcc3`): 322 corpus rows → 307
+  accepted + 15 refused. `prompts.jsonl`/`tokens.jsonl`/`rows.jsonl`/
+  `inputs.jsonl`/`cli_errors.jsonl` + manifest. Quirk pinned: **empty option
+  ids are accepted** by `validate_row` (`edge-description-empty`-adjacent row
+  `refuse-empty-id` renders fine) — contract behavior, not a refusal. CLI
+  process contract pinned: row ValueError → rc 1 + traceback line, no output
+  file; existing-output/empty-input → rc 2 argparse messages.
+- **Token parity vs committed evidence, for free**: the shape777 state-0 rows
+  encode to **1,891 tokens — exactly the committed prediction rows'**
+  `input_tokens`; slots 32–47 (A–P) match. The template/tokenizer contract is
+  byte-stable across machines.
+- **Probes** (`semif-rs/probes/`): CUDA BF16 **286 rows**; CPU fp32 and GGUF
+  25-row subsets, row-aligned. Cross-profile: token identity holds everywhere;
+  cpufp32-vs-cuda-bf16 argmax **100%** with logit |Δ| ≤ 0.196; gguf-vs-fp32
+  argmax **96%** with |Δ| ≤ 1.63 and one substantive quantization flip
+  (`8a4c3de2…`, fp32 [0.085, 0.173, 0.741] vs gguf [0.095, 0.514, 0.391] —
+  "conditional on the quantized weights" made concrete).
+- **Cross-device drift quantified before any Rust exists**
+  (`compare-cuda-vs-committed-3090.json`): this machine's Blackwell BF16 vs
+  committed 3090-provenance rows: **argmax agreement 99.31%** (1 flip in 144,
+  `d6de731c…`, a knife-edge where local top-2 tie at 0.4045), bf16-snap-equal
+  logits on only 20% of rows, mean prob delta 0.008. This is the honest scale
+  of "normal" drift the §6 gates were designed around.
+- **Determinism**: two identical CLI runs (48 authored rows, CUDA BF16) diff
+  identity-exact, numerics clean, argmax 1.0 through `diff_rows.py` — the row
+  diff instrument works on real scorer output.
+- **Stage 3 Gate 0 effectively retired early**: transformers 5.17 warns that
+  `chunk_gated_delta_rule` runs its **reference pure-torch implementation**
+  (`flash-linear-attention` absent — and absent from `requirements.txt`, so
+  the committed evidence used it too). The oracle's numerics are public torch
+  ops ⇒ the `tch` route inherits torch's own kernels. Rule recorded in the
+  baseline: **never install `flash-linear-attention` into the oracle**; it
+  would silently change the parity target.
+- **Config facts observed** for Stage 3: text config nested
+  (`model_type qwen3_5` → `text_config`, `qwen3_5_text`), vocab **248,320**,
+  32 layers, hidden 2560, `full_attention_interval: 4`, separate
+  `chat_template.jinja` in the repo tree.
+
+Rust work begins at Stage 1 against `semif-rs/fixtures/`.

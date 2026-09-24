@@ -1,0 +1,96 @@
+{
+  "schema": "semif-stage0-baseline-v1",
+  "oracle": {
+    "python": "3.12.3",
+    "torch": "2.10.0+cu128",
+    "transformers": "5.17.0",
+    "tokenizers": "0.23.2",
+    "llama_cpp_python": "0.3.35",
+    "flash_linear_attention": "NOT installed; reference chunk_gated_delta_rule is the parity target \u2014 do not install into the oracle"
+  },
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+    "vram_mib": 12227,
+    "driver": "590.48.01",
+    "note": "captures taken while two unrelated heavy tasks ran concurrently; numerics unaffected, all timing fields void"
+  },
+  "pytest": {
+    "passed": 68,
+    "skipped": 2,
+    "skip_reasons": [
+      "MLX requires Apple Silicon",
+      "MPS unavailable"
+    ],
+    "with SEMIF_LLAMACPP_GGUF set": true
+  },
+  "checkpoints": {
+    "loader_source": "/media/ianj/New Volume/hf-plain/models/Qwen_Qwen3.5-4B",
+    "canonical": "Qwen/Qwen3.5-4B @ 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "shard_sha256_verified": true,
+    "gguf": {
+      "file": "Qwen_Qwen3.5-4B-Q4_K_M.gguf",
+      "bytes": 3013027808,
+      "sha256": "13c16f426047e2de38cd075bdade4a7bcbc8c774384876f677740cda65f8a983",
+      "canonical": "bartowski/Qwen_Qwen3.5-4B-GGUF @ 4168f45a16a1290d65a4ec0fa312ae917a4c15d6"
+    }
+  },
+  "captures": {
+    "cuda_bf16": {
+      "path": "semif-rs/probes/logits-cuda-bf16-rtx5070ti-laptop.jsonl",
+      "rows": 286
+    },
+    "cpufp32": {
+      "path": "semif-rs/probes/logits-cpufp32.jsonl",
+      "rows": 25,
+      "composition": "10 edge + 3 owned + 9 authored originals + 3 shape777 state-0 rows; full-corpus CPU run deferred"
+    },
+    "gguf_q4km": {
+      "path": "semif-rs/probes/logits-gguf-q4km.jsonl",
+      "rows": 25,
+      "composition": "same ids as cpufp32"
+    }
+  },
+  "cross_profile": {
+    "token_identity": "all rows, all profiles, and full cuda corpus vs fixtures: identical prompt_sha256",
+    "cpufp32_vs_cuda_bf16": {
+      "rows": 25,
+      "argmax_agreement": 1.0,
+      "logit_max_delta_mean": 0.0841,
+      "logit_max_delta_max": 0.1956
+    },
+    "gguf_vs_cpufp32": {
+      "rows": 25,
+      "argmax_agreement": 0.96,
+      "logit_max_delta_mean": 0.7075,
+      "logit_max_delta_max": 1.6338,
+      "flip": {
+        "id": "8a4c3de28be95c105ca1",
+        "note": "substantive, not knife-edge: fp32 [0.085,0.173,0.741] vs gguf [0.095,0.514,0.391]"
+      }
+    }
+  },
+  "cross_device_informational": {
+    "compare_file": "semif-rs/probes/compare-cuda-vs-committed-3090.json",
+    "rows": 144,
+    "argmax_agreement": 0.9930555555555556,
+    "bf16_snap_equal_row_fraction": 0.2013888888888889,
+    "flip": {
+      "id": "d6de731cca52359b1c87",
+      "note": "near-tie: local top-2 tied at 0.4045; committed top-2 0.3547/0.4554"
+    },
+    "verdict": "cross-GPU-generation drift sits inside the repo's own documented cross-path flip envelope (5-6/777)"
+  },
+  "determinism": {
+    "run1_vs_run2": {
+      "rows": 48,
+      "identity_ok": true,
+      "numeric_ok": true,
+      "argmax_agreement": 1.0,
+      "files": [
+        "semif-rs/runs/py-cuda-bf16-authored48-run1.jsonl",
+        "semif-rs/runs/py-cuda-bf16-authored48-run2.jsonl"
+      ]
+    }
+  },
+  "timing_baseline": "DEFERRED \u2014 machine was under concurrent load during all captures; re-measure on an idle machine"
+}

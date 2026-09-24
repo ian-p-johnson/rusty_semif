@@ -1,0 +1,18 @@
+{
+  "schema": "semif-informational-compare-v1",
+  "local": "semif-rs/probes/logits-cuda-bf16-rtx5070ti-laptop.jsonl",
+  "committed": "results/raw/predictions/direct-authored144.jsonl",
+  "committed_provenance": {
+    "source": "Qwen/Qwen3.5-4B",
+    "revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+    "dtype": "bfloat16",
+    "torch_version": "2.10.0+cu128"
+  },
+  "rows_compared": 144,
+  "argmax_agreement": 0.9930555555555556,
+  "prob_max_delta_mean": 0.008289233672621927,
+  "prob_max_delta_p99": 0.062076251746095004,
+  "option_logit_max_delta_mean": 0.1111111111111111,
+  "option_logit_max_delta_max": 0.5,
+  "bf16_snap_equal_row_fraction": 0.2013888888888889
+}
