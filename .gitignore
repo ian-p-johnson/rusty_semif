@@ -12,3 +12,6 @@ cache/
 
 # Rust build artifacts
 semif-rs/target/
+
+# TorchScript artifacts (regenerable, ~8GB each)
+semif-rs/artifacts/
