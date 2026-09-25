@@ -6,6 +6,7 @@ members = [
     "crates/semif-engine",
     "crates/semif-cli",
     "crates/semif-engine-llamacpp",
+    "crates/semif-engine-tch",
 ]
 
 [workspace.package]
@@ -26,6 +27,7 @@ semif-types = { path = "crates/semif-types" }
 semif-core = { path = "crates/semif-core" }
 semif-engine = { path = "crates/semif-engine" }
 semif-engine-llamacpp = { path = "crates/semif-engine-llamacpp" }
+semif-engine-tch = { path = "crates/semif-engine-tch" }
 
 [profile.release]
 strip = true

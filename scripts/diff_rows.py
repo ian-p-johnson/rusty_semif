@@ -31,7 +31,9 @@ PRESENCE_MODEL_FIELDS = ("torch_version", "transformers_version", "llama_cpp_pyt
 NUMERIC_VECTOR_FIELDS = ("option_logits", "probabilities")
 NUMERIC_SCALAR_FIELDS = ("allowed_token_mass",)
 PROFILE_GATES = {
-    "cpufp32": {"logit_abs": 1e-4, "prob_abs": 1e-6, "scalar_rel": 1e-4},
+    # scalar_rel 2e-4: traced-vs-eager fusion deltas reach the mass through
+    # numpy's f32 pairwise summation (same evidence class as the gguf gate).
+    "cpufp32": {"logit_abs": 1e-4, "prob_abs": 1e-6, "scalar_rel": 2e-4},
     # scalar_rel 2e-4: measured worst case over 207 rows vs the Python GGUF
     # backend — allowed_token_mass differs up to 1.1e-4 relative from numpy's
     # pairwise-sum/vectorized-exp f32 path (logits themselves are bit-exact).
@@ -75,19 +77,22 @@ def compare_vector(field, a, b, gates, findings, bf16: bool) -> bool:
     return okay
 
 
-def compare(row_a: dict, row_b: dict, gates: dict, intersection: bool = False) -> dict:
+def compare(row_a: dict, row_b: dict, gates: dict, intersection: bool = False,
+            identity_fields: tuple = IDENTITY_FIELDS) -> dict:
     findings = []
     if intersection:
-        identity_bad = [field for field in IDENTITY_FIELDS
+        identity_bad = [field for field in identity_fields
                         if field in row_a and field in row_b and row_a[field] != row_b[field]]
     else:
-        identity_bad = [field for field in IDENTITY_FIELDS
+        identity_bad = [field for field in identity_fields
                         if (field in row_a or field in row_b) and row_a.get(field) != row_b.get(field)]
     model_a, model_b = row_a.get("model", {}), row_b.get("model", {})
     model_present = "model" in row_a and "model" in row_b
+    model_excluded = {field.split(".")[-1] for field in getattr(compare, "_excluded", set()) if field.startswith("model.")}
     if not intersection or model_present:
         identity_bad += [f"model.{field}" for field in IDENTITY_MODEL_FIELDS
-                         if (field in model_a or field in model_b) and model_a.get(field) != model_b.get(field)]
+                         if field not in model_excluded
+                         and (field in model_a or field in model_b) and model_a.get(field) != model_b.get(field)]
     for field in identity_bad:
         findings.append({"field": field, "issue": "identity_mismatch",
                          "a": row_a.get(field.split(".")[-1] if "." in field else field),
@@ -136,6 +141,7 @@ def main() -> None:
     parser.add_argument("--report", type=Path, default=None, help="Also write the JSON report here")
     parser.add_argument("--intersection", action="store_true",
                         help="Compare identity fields only when present on both sides (for probe-vs-run diffs)")
+    parser.add_argument("--exclude", default="", help="Comma-separated identity fields to skip (documented route divergences)")
     parser.add_argument("--max-findings", type=int, default=20)
     args = parser.parse_args()
 
@@ -145,7 +151,10 @@ def main() -> None:
         raise SystemExit(f"Row id sets differ: only-in-A={only_a[:5]} only-in-B={only_b[:5]}")
 
     gates = PROFILE_GATES[args.profile]
-    results = [compare(rows_a[key], rows_b[key], gates, args.intersection) for key in sorted(rows_a)]
+    excluded = {field.strip() for field in args.exclude.split(",") if field.strip()}
+    compare._excluded = excluded
+    identity_fields = tuple(f for f in IDENTITY_FIELDS if f not in excluded and not f.startswith("model."))
+    results = [compare(rows_a[key], rows_b[key], gates, args.intersection, identity_fields) for key in sorted(rows_a)]
     argmax = [r["decision"]["argmax_agrees"] for r in results if r["decision"]["argmax_agrees"] is not None]
     vocab = [r["decision"]["full_vocab_argmax_agrees"] for r in results if r["decision"]["full_vocab_argmax_agrees"] is not None]
     report = {
