@@ -1,0 +1,174 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "runs/rust-tch-cuda-direct-authored144.jsonl",
+  "file_b": "runs/py-torch-cuda-direct-authored144.jsonl",
+  "rows_compared": 144,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "argmax_agreement": 0.9930555555555556,
+  "full_vocab_argmax_agreement": 0.0,
+  "finding_count": 552,
+  "findings": [
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 26.875,
+      "b": 27.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.010977042839932505,
+      "b": 0.009700745760459801,
+      "abs_delta": 0.0012762970794727036
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.9881219066136573,
+      "b": 0.989502968537142,
+      "abs_delta": 0.0013810619234847499
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 22.0,
+      "b": 21.5,
+      "abs_delta": 0.5
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 21.875,
+      "b": 22.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.8509917758902013,
+      "b": 0.8699959571448268,
+      "abs_delta": 0.019004181254625552
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.07915456535690249,
+      "b": 0.04908181328600485,
+      "abs_delta": 0.030072752070897643
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.06985365875289637,
+      "b": 0.08092222956916835,
+      "abs_delta": 0.01106857081627198
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 20.125,
+      "b": 20.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 18.875,
+      "b": 19.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 22.875,
+      "b": 22.75,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.3647643195030117,
+      "b": 0.36929926430076804,
+      "abs_delta": 0.004534944797756346
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.10450672726105584,
+      "b": 0.09337347671679644,
+      "abs_delta": 0.011133250544259399
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.5307289532359325,
+      "b": 0.5373272589824355,
+      "abs_delta": 0.006598305746502997
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    }
+  ]
+}

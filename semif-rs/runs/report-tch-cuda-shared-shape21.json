@@ -1,0 +1,174 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "runs/rust-tch-cuda-shared-shape21.jsonl",
+  "file_b": "runs/py-torch-cuda-shared-shape21.jsonl",
+  "rows_compared": 21,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "argmax_agreement": 1.0,
+  "full_vocab_argmax_agreement": 0.0,
+  "finding_count": 52,
+  "findings": [
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.875,
+      "b": 25.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.4073334000459302,
+      "b": 0.4378234991142019,
+      "abs_delta": 0.03049009906827166
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.5926665999540697,
+      "b": 0.5621765008857981,
+      "abs_delta": 0.030490099068271603
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 26.125,
+      "b": 26.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.7981867777396212,
+      "b": 0.7772998611746911,
+      "abs_delta": 0.020886916564930136
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.20181322226037882,
+      "b": 0.22270013882530884,
+      "abs_delta": 0.020886916564930025
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.0,
+      "b": 23.875,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.07585818002124356,
+      "b": 0.0675466911396291,
+      "abs_delta": 0.008311488881614454
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.9241418199787566,
+      "b": 0.9324533088603709,
+      "abs_delta": 0.00831148888161437
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 26.375,
+      "b": 26.5,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.13296424019782924,
+      "b": 0.11920292202211755,
+      "abs_delta": 0.01376131817571169
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.8670357598021706,
+      "b": 0.8807970779778823,
+      "abs_delta": 0.01376131817571169
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 23.875,
+      "b": 23.75,
+      "abs_delta": 0.125
+    }
+  ]
+}

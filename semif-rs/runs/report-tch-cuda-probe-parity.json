@@ -1,0 +1,174 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "runs/rust-tch-cuda-probe25.jsonl",
+  "file_b": "probes/logits-cuda-bf16-probe25-slice.jsonl",
+  "rows_compared": 25,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "argmax_agreement": 1.0,
+  "full_vocab_argmax_agreement": 0.0,
+  "finding_count": 101,
+  "findings": [
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.875,
+      "b": 25.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.125,
+      "b": 25.25,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 28.5,
+      "b": 28.625,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 21.75,
+      "b": 21.625,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 27.0,
+      "b": 27.125,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.0,
+      "b": 25.125,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.6224593312018546,
+      "b": 0.5926665999540697,
+      "abs_delta": 0.02979273124778492
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.37754066879814546,
+      "b": 0.4073334000459302,
+      "abs_delta": 0.029792731247784754
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 22.0,
+      "b": 21.875,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 19.875,
+      "b": 19.75,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 28.125,
+      "b": 28.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 27.375,
+      "b": 27.25,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "decision",
+      "issue": "argmax_flip",
+      "decision": {
+        "argmax_agrees": true,
+        "full_vocab_argmax_agrees": false
+      }
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 22.625,
+      "b": 22.75,
+      "abs_delta": 0.125
+    }
+  ]
+}

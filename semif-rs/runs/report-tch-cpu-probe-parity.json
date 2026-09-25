@@ -1,0 +1,126 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cpufp32",
+  "file_a": "runs/rust-tch-cpu-probe25.jsonl",
+  "file_b": "probes/logits-cpufp32.jsonl",
+  "rows_compared": 25,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "argmax_agreement": 1.0,
+  "full_vocab_argmax_agreement": 1.0,
+  "finding_count": 37,
+  "findings": [
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.4167391538056163,
+      "b": 0.4167363721199792,
+      "abs_delta": 2.7816856371098986e-06
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.5832608461943838,
+      "b": 0.5832636278800207,
+      "abs_delta": 2.781685636943365e-06
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.08524885509587167,
+      "b": 0.0852469574569571,
+      "abs_delta": 1.8976389145747286e-06
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.1734372745177407,
+      "b": 0.1734387066537477,
+      "abs_delta": 1.4321360069791123e-06
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.8770161837889093,
+      "b": 0.8770150932957609,
+      "abs_delta": 1.0904931484478908e-06
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.11223386983580584,
+      "b": 0.1122350147032371,
+      "abs_delta": 1.1448674312602991e-06
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.25188304752899865,
+      "b": 0.25188089103360495,
+      "abs_delta": 2.156495393701441e-06
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.7481169524710013,
+      "b": 0.748119108966395,
+      "abs_delta": 2.156495393701441e-06
+    },
+    {
+      "field": "logits_sha256",
+      "issue": "vocab_bits_differ"
+    }
+  ]
+}
