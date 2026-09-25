@@ -839,3 +839,58 @@ bit-exact slot logits.**
 Stage 3 next: the CUDA BF16 engine via `tch` (Gate 0 feasibility spike
 first), against the Stage 0 `logits-cuda-bf16-rtx5070ti-laptop.jsonl` and
 `logits-cpufp32.jsonl` captures.
+
+### Stage 3 — complete (2026-09-25) — trace route (operator-approved re-scope)
+
+The CUDA/BF16 engine shipped via **TorchScript trace** rather than the
+hand-written 32-layer hybrid stack: the operator chose delivery speed over
+cache-reuse fidelity, and Gate 0 immediately validated having a gate —
+free-form `torch.jit.trace` of the model **does not generalize across prompt
+lengths** for this hybrid architecture (eager-vs-traced Δ = 24 on a
+396-token row traced at 108: python-level length logic bakes constants).
+
+- **Fixed-shape tracing**: every input right-padded to a fixed width
+  (artifacts at w4096 and w2048; 2048 is the working width on this 12 GB
+  card — 4096-wide reference-delta-rule activations OOM bf16). The wrapper
+  takes `(input_ids[1, W], length[1])` and gathers the f32 vocabulary logits
+  at the last *real* position. Causality + sequential delta-rule state make
+  positions < L padding-invariant — verified per row at export, not assumed.
+- **Export gates (Python side)**: eager-unpadded vs traced-padded — CPU fp32
+  worst Δ = 2.05e-05 (gate 1e-4); CUDA BF16 worst Δ = 0.25 (2 grid steps at
+  logit magnitude; exporter tolerance 0.51). 6 check rows per context.
+- **The decisive port-correctness gate**: Rust `tch` executes the traced
+  graph **bit-exactly** — full 248,320-float vocabulary sha256 matches the
+  Python trace-check on **6/6 rows in BOTH contexts** (CPU fp32 and CUDA
+  BF16). This is the trace route's replacement for the eager snap gate:
+  kernels legitimately differ under trace fusion (vs the eager capture only
+  34% of slot logits snap-equal, ≤ 2 grid steps, decisions unaffected).
+- **Decision gates vs Python CUDA (eager)**: probe corpus **25/25**; direct
+  authored144 **143/144** (the single flip is `d6de731c…` — the same
+  knife-edge Stage 0 documented, top-2 tied at 0.4045); serial shape777
+  **21/21**; shared shape777 **21/21** (Python shared run in 7-row chunks —
+  batch-21 cache replication OOMs a 12 GB card on the Python side too).
+- **Route divergences (documented, excluded in diffs)**: `serving_config`
+  `tch-trace-direct-v1` and new readout strings; serial/shared run as
+  **fresh-recompute** (correct logit class, no cache-reuse speedup) until a
+  hand-written cache lands; rows above the trace width are refused, never
+  truncated.
+- **Linking findings** (all gate-caught): tch version must match libtorch
+  (0.26 requires 2.13 C++ symbols; **0.23.0 matches 2.10**; bisected via the
+  build-script version check); `torch-sys` 0.23 has no `cuda` feature —
+  CUDA linkage relies on libtorch_cuda being *loaded*, which needs
+  `dlopen(libtorch_cuda.so, RTLD_GLOBAL)` at engine construction (Python does
+  the same in `_load_global_deps`; note this wheel's file has no `.0`
+  suffix); dependency build-script `rustc-link-arg`s do not propagate, so the
+  final binary carries its own `build.rs` link args (`--no-as-needed` keeps
+  libtorch_cuda in DT_NEEDED; `$ORIGIN` rpaths — repo path has a space — for
+  both `target/debug/` and `target/debug/deps/` depths); the forward runs
+  under `tch::no_grad` (un-guarded, autograd bookkeeping OOMs the card);
+  and the forward signature is `(input_ids, length)` — both tensors.
+- **Reranker checkpoint** fetched and size-verified (shard names differ from
+  Qwen3.5-4B: `model-0000X-of-00002.safetensors`); its trace + gates are the
+  remaining Stage 3 tail, alongside full authored144/shape777 accuracy
+  fingerprints, before Stage 4.
+
+Stage 4 next: evidence integration — accuracy fingerprints (authored144,
+perturbations108, shape777) through the unmodified Python evaluators on
+Rust-produced files, plus the timing ledger on an idle machine.
