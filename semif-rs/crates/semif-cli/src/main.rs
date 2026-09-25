@@ -74,6 +74,33 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &args.model,
             &args.revision,
         )?)
+    } else if args.backend == "torch" && std::env::var("SEMIF_TCH_TRACE").is_ok() {
+        let context = match (args.device.as_str(), args.dtype.as_str()) {
+            ("cpu", "float32") => "cpufp32",
+            ("cuda", "bfloat16") => "cudabf16",
+            other => fail_usage(&format!(
+                "no traced artifact for device/dtype {other:?}; available: cpu+float32, cuda+bfloat16"
+            )),
+        };
+        let width = std::env::var("SEMIF_TCH_WIDTH")
+            .ok()
+            .and_then(|w| w.parse::<usize>().ok())
+            .unwrap_or(4096);
+        if args.max_tokens as usize > width {
+            fail_usage("tch trace width is smaller than --max-tokens");
+        }
+        let artifact = Path::new(
+            &std::env::var("SEMIF_TCH_ARTIFACTS").unwrap_or_else(|_| "semif-rs/artifacts".into()),
+        )
+        .join(format!("qwen35-direct-{context}-w{width}.pt"));
+        Box::new(semif_engine_tch::TchEngine::new(
+            &artifact,
+            semif_engine_tch::device_for_context(context),
+            &args.model,
+            &args.revision,
+            &args.dtype,
+            context,
+        )?)
     } else {
         Box::new(StubEngine)
     };
