@@ -15,3 +15,6 @@ semif-rs/target/
 
 # TorchScript artifacts (regenerable, ~8GB each)
 semif-rs/artifacts/
+
+# Speed-ledger re-runs: transient duplicates of semif-rs/results/
+semif-rs/runs/timing/
