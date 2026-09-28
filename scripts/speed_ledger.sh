@@ -38,6 +38,21 @@ if [[ -f "$LEDGER" ]]; then
   exit 2
 fi
 
+# This machine is shared. Stage 0 voided every timing field it took under load,
+# and so will this: refuse rather than record a number that cannot be trusted.
+# Threshold is one quarter of the cores (5 on a 20-core box); override with
+# SEMIF_MAX_LOAD_1MIN if you know the box is otherwise idle.
+CORES="$(nproc)"
+MAX_LOAD="${SEMIF_MAX_LOAD_1MIN:-$(( CORES / 4 ))}"
+READ1="$(cut -d' ' -f1 /proc/loadavg)"
+LOAD_OK="$(awk "BEGIN {print ($READ1 <= $MAX_LOAD) ? 1 : 0}")"
+if [[ "$LOAD_OK" != "1" ]]; then
+  echo "refusing: 1-minute load average $READ1 exceeds $MAX_LOAD" >&2
+  echo "         (nproc=$CORES; run when the box is quiet, or set SEMIF_MAX_LOAD_1MIN)" >&2
+  exit 3
+fi
+echo "load average at start: $READ1 (max $MAX_LOAD, nproc=$CORES)"
+
 ROWS=777
 entries=()
 
@@ -58,7 +73,9 @@ timed() {
         --input "$INPUT" --output "$out" > /dev/null 2>&1
     fi
   else
-    semif-rs/target/debug/semif-cli --mode "$mode" --backend torch \
+    # Release profile: comparing an unoptimised Rust glue path against
+    # optimised Python measures the compiler, not the port.
+    semif-rs/target/release/semif-cli --mode "$mode" --backend torch \
       --device cuda --dtype bfloat16 --model "$CAUSAL" --revision "$CAUSAL_REV" \
       --input "$INPUT" --output "$out" > /dev/null 2>&1
   fi
@@ -106,9 +123,9 @@ for mode in direct serial shared; do
   timed rust "$mode" "$reference"
 done
 
-python - "$LEDGER" "${entries[@]}" <<'PY'
+python - "$LEDGER" "$READ1" "${entries[@]}" <<'PY'
 import json, platform, sys
-out, *entries = sys.argv[1:]
+out, load, *entries = sys.argv[1:]
 record = {
     "schema": "semif-rs-speed-ledger-v1",
     "fixture": "benchmarks/data/shape777.jsonl",
@@ -125,6 +142,8 @@ record = {
         "like comparison against Python's cache-reusing paths."
     ),
     "host": platform.platform(),
+    "load_average_at_start": float(load),
+    "rust_profile": "release",
     "entries": [json.loads(entry) for entry in entries],
 }
 with open(out, "x") as stream:
