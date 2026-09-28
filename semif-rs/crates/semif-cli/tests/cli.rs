@@ -170,6 +170,69 @@ fn negative_max_tokens_message() {
     assert!(!output.exists());
 }
 
+/// cli.py forces reranker to CUDA *after* rows validate, so this refusal runs
+/// before any tokenizer load and exits 2 without creating the output.
+#[test]
+fn reranker_requires_cuda() {
+    let dir = tempfile_dir("reranker-cuda");
+    write(&dir.join("in.jsonl"), VALID_ROW);
+    let (result, output) = run_cli(&dir, "in.jsonl", &["--mode", "reranker", "--device", "cpu"]);
+    assert_eq!(result.status.code(), Some(2));
+    assert_eq!(
+        last_stderr_line(&result),
+        "error: Reranker mode requires CUDA; --device cpu is unsupported"
+    );
+    assert!(!output.exists());
+}
+
+/// The torch backend is trace-only, so reranker refuses rather than silently
+/// falling through to the uniform stub (accepted divergence: Python would run
+/// eagerly). Cleared explicitly so the assertion holds even when the caller's
+/// shell has the flag exported.
+#[test]
+fn reranker_without_trace_engine_exits_2() {
+    let dir = tempfile_dir("reranker-no-trace");
+    write(&dir.join("in.jsonl"), VALID_ROW);
+    let fixtures = std::path::Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures"));
+    let manifest = std::fs::read_to_string(fixtures.join("manifest.json")).unwrap();
+    let loader = loader_source(&manifest);
+    let output = dir.join("out.jsonl");
+    let result = Command::new(BIN)
+        .args([
+            "--mode",
+            "reranker",
+            "--backend",
+            "torch",
+            "--device",
+            "cuda",
+            "--model",
+            &loader,
+            "--revision",
+            "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+            "--input",
+            dir.join("in.jsonl").to_str().unwrap(),
+            "--output",
+            output.to_str().unwrap(),
+        ])
+        .env_remove("SEMIF_TCH_TRACE")
+        .output()
+        .unwrap();
+    assert_eq!(result.status.code(), Some(2));
+    assert_eq!(
+        last_stderr_line(&result),
+        "error: reranker mode requires the traced tch engine; set SEMIF_TCH_TRACE=1"
+    );
+    assert!(!output.exists());
+}
+
+/// `manifest.json` loader path, read without a JSON dependency.
+fn loader_source(manifest: &str) -> String {
+    let key = "\"loader_source\": \"";
+    let start = manifest.find(key).expect("loader_source") + key.len();
+    let rest = &manifest[start..];
+    rest[..rest.find('"').expect("closing quote")].to_string()
+}
+
 fn tempfile_dir(name: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("semif-cli-test-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);

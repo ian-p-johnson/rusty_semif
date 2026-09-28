@@ -30,6 +30,18 @@ pub trait Engine {
         rows: &[PyValue],
         context: &ScoreContext<'_>,
     ) -> Result<(Vec<PyValue>, Option<PyValue>), ScorerError>;
+
+    /// `reranker.score` — the native yes/no readout. CUDA-only, like Python's;
+    /// engines that do not carry a reranker artifact keep the default refusal.
+    fn score_reranker(
+        &self,
+        _row: &PyValue,
+        _context: &ScoreContext<'_>,
+    ) -> Result<PyValue, ScorerError> {
+        Err(ScorerError::Message(
+            "reranker mode is not supported by this backend".into(),
+        ))
+    }
 }
 
 /// Uniform-probability stub: `probabilities = 1/K`, `option_logits = 0.0`.

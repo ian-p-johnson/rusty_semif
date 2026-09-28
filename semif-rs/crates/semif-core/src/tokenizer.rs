@@ -51,6 +51,13 @@ impl ReferenceTokenizer {
             .decode(&[id], false)
             .map_err(|error| ScorerError::Load(error.to_string()))
     }
+
+    /// `tokenizer.convert_tokens_to_ids(token)` — a direct vocabulary lookup.
+    /// The reranker's yes/no contract checks this against the encode path, so
+    /// the two must be independent observations.
+    pub fn token_to_id(&self, token: &str) -> Option<u32> {
+        self.inner.token_to_id(token)
+    }
 }
 
 /// `_slot_ids`: every answer letter must be one exact round-trip token, no collisions.

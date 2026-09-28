@@ -11,6 +11,7 @@
 //! - `template`: the pinned Qwen3.5 chat-template rendering
 //! - `tokenizer`: reference tokenizer harness with truncation/padding detached
 //! - `prefix`:  state-prefix extraction (`shared._state_prefix`)
+//! - `reranker`: pair prompts, budget refusal, yes/no answer contract
 
 pub mod digest;
 pub mod parser;
@@ -18,6 +19,7 @@ pub mod prefix;
 pub mod prompt;
 pub mod pyfloat;
 pub mod pyjson;
+pub mod reranker;
 pub mod softmax;
 pub mod tokenizer;
 
@@ -27,6 +29,7 @@ pub use prefix::state_prefix;
 pub use prompt::{build_prompt, render_prompt};
 pub use pyfloat::py_repr;
 pub use pyjson::{JsonError, dumps_output, dumps_payload};
+pub use reranker::{answer_ids, encode_pair, pair_text};
 pub use softmax::softmax;
 pub use tokenizer::{ReferenceTokenizer, ScorerError, encode_prompt};
 

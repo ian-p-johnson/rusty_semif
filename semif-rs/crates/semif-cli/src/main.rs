@@ -11,7 +11,7 @@ use semif_core::tokenizer::{ReferenceTokenizer, ScorerError};
 use semif_engine::{ScoreContext, StubEngine};
 use semif_types::PyValue;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 fn fail_usage(message: &str) -> ! {
@@ -22,6 +22,20 @@ fn fail_usage(message: &str) -> ! {
 fn fail_row(message: &str) -> ! {
     eprintln!("ValueError: {message}");
     std::process::exit(1);
+}
+
+/// Fixed trace width, mirroring the exporter's `--width`.
+fn tch_width() -> usize {
+    std::env::var("SEMIF_TCH_WIDTH")
+        .ok()
+        .and_then(|width| width.parse::<usize>().ok())
+        .unwrap_or(4096)
+}
+
+/// `{artifacts}/{stem}-{context}-w{width}.pt`.
+fn trace_artifact(stem: &str, context: &str, width: usize) -> PathBuf {
+    Path::new(&std::env::var("SEMIF_TCH_ARTIFACTS").unwrap_or_else(|_| "semif-rs/artifacts".into()))
+        .join(format!("{stem}-{context}-w{width}.pt"))
 }
 
 fn read_rows(path: &Path) -> Vec<PyValue> {
@@ -58,6 +72,15 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
     let rows = read_rows(&args.input);
 
+    // Python forces reranker to CUDA *after* rows are validated (cli.py),
+    // so a bad row still exits 1 before this usage error exits 2.
+    if args.mode == "reranker" && (args.device == "mps" || args.device == "cpu") {
+        fail_usage(&format!(
+            "Reranker mode requires CUDA; --device {} is unsupported",
+            args.device
+        ));
+    }
+
     let tokenizer = ReferenceTokenizer::from_checkpoint_dir(Path::new(&args.model))?;
     let threads = std::thread::available_parallelism()
         .map(|n| n.get())
@@ -74,25 +97,56 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
             &args.model,
             &args.revision,
         )?)
+    } else if args.backend == "torch" && args.mode == "reranker" {
+        // The torch backend is trace-only: there is no eager engine, so reranker
+        // refuses rather than silently falling through to the stub (documented
+        // divergence — Python would happily run eagerly).
+        if std::env::var("SEMIF_TCH_TRACE").is_err() {
+            fail_usage("reranker mode requires the traced tch engine; set SEMIF_TCH_TRACE=1");
+        }
+        if args.dtype != "bfloat16" {
+            fail_usage(&format!(
+                "no traced reranker artifact for dtype {}; available: cuda+bfloat16",
+                args.dtype
+            ));
+        }
+        semif_engine_tch::require_single_gpu()
+            .unwrap_or_else(|error| fail_usage(&error.to_string()));
+        // No run-level `max_tokens`/width guard here: the reranker trace is
+        // 2048 wide while Python's budget default is 4096, so a guard would
+        // reject runs whose rows all fit. Rows past the width are refused
+        // individually instead (accepted divergence).
+        let artifact = trace_artifact("qwen3reranker", "cudabf16", tch_width());
+        Box::new(semif_engine_tch::TchEngine::new_reranker(
+            &artifact,
+            semif_engine_tch::device_for_context("cudabf16"),
+            &args.model,
+            &args.revision,
+            &args.dtype,
+            "cudabf16",
+        )?)
     } else if args.backend == "torch" && std::env::var("SEMIF_TCH_TRACE").is_ok() {
-        let context = match (args.device.as_str(), args.dtype.as_str()) {
+        // Python's `auto` prefers CUDA; resolve it before naming the artifact
+        // so the default device works the same way here.
+        let device = match args.device.as_str() {
+            "auto" => "cuda",
+            other => other,
+        };
+        let context = match (device, args.dtype.as_str()) {
             ("cpu", "float32") => "cpufp32",
             ("cuda", "bfloat16") => "cudabf16",
             other => fail_usage(&format!(
                 "no traced artifact for device/dtype {other:?}; available: cpu+float32, cuda+bfloat16"
             )),
         };
-        let width = std::env::var("SEMIF_TCH_WIDTH")
-            .ok()
-            .and_then(|w| w.parse::<usize>().ok())
-            .unwrap_or(4096);
-        if args.max_tokens as usize > width {
-            fail_usage("tch trace width is smaller than --max-tokens");
+        if context == "cudabf16" {
+            semif_engine_tch::require_single_gpu()
+                .unwrap_or_else(|error| fail_usage(&error.to_string()));
         }
-        let artifact = Path::new(
-            &std::env::var("SEMIF_TCH_ARTIFACTS").unwrap_or_else(|_| "semif-rs/artifacts".into()),
-        )
-        .join(format!("qwen35-direct-{context}-w{width}.pt"));
+        // No run-level `max_tokens`/width guard: it would reject runs whose
+        // rows all fit. Rows past the trace width are refused individually by
+        // the engine instead (matches Python's per-row budget refusal).
+        let artifact = trace_artifact("qwen35-direct", context, tch_width());
         Box::new(semif_engine_tch::TchEngine::new(
             &artifact,
             semif_engine_tch::device_for_context(context),
@@ -133,6 +187,8 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     for row in &rows {
         let outcome = if args.mode == "serial" {
             engine.score_serial(row, &context)
+        } else if args.mode == "reranker" {
+            engine.score_reranker(row, &context)
         } else {
             engine.score_direct(row, &context)
         };
