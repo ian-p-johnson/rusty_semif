@@ -1,0 +1,178 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "/media/ianj/New Volume/dev/rusty_semif/semif-rs/results/shape777-direct.jsonl",
+  "file_b": "/media/ianj/New Volume/dev/rusty_semif/semif-rs/runs/py-torch-cuda-direct-shape777.jsonl",
+  "rows_compared": 777,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "excluded_fields": [
+    "model.serving_config",
+    "readout"
+  ],
+  "argmax_agreement": 0.9935649935649936,
+  "full_vocab_argmax_agreement": null,
+  "finding_count": 1427,
+  "findings": [
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.875,
+      "b": 24.75,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.34864513533394575,
+      "b": 0.32082130082460697,
+      "abs_delta": 0.027823834509338785
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.6513548646660542,
+      "b": 0.679178699175393,
+      "abs_delta": 0.027823834509338785
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 23.75,
+      "b": 23.625,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.02595735719779685,
+      "b": 0.02297736991002561,
+      "abs_delta": 0.0029799872877712373
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.9740426428022031,
+      "b": 0.9770226300899744,
+      "abs_delta": 0.0029799872877712685
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.875,
+      "b": 25.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.4073334000459302,
+      "b": 0.4378234991142019,
+      "abs_delta": 0.03049009906827166
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.5926665999540697,
+      "b": 0.5621765008857981,
+      "abs_delta": 0.030490099068271603
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.375,
+      "b": 25.5,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.22270013882530884,
+      "b": 0.20181322226037882,
+      "abs_delta": 0.020886916564930025
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.7772998611746911,
+      "b": 0.7981867777396212,
+      "abs_delta": 0.020886916564930136
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 21.75,
+      "b": 21.875,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 23.0,
+      "b": 23.125,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 27.25,
+      "b": 27.375,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 24.0,
+      "b": 24.125,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 26.625,
+      "b": 26.875,
+      "abs_delta": 0.25
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.0675466911396291,
+      "b": 0.06008665017400762,
+      "abs_delta": 0.007460040965621487
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.9324533088603709,
+      "b": 0.9399133498259924,
+      "abs_delta": 0.007460040965621473
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.125,
+      "b": 25.25,
+      "abs_delta": 0.125
+    }
+  ]
+}

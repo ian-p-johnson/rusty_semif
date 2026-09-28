@@ -1,0 +1,178 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "/media/ianj/New Volume/dev/rusty_semif/semif-rs/results/direct-perturbations108.jsonl",
+  "file_b": "/media/ianj/New Volume/dev/rusty_semif/semif-rs/runs/py-torch-cuda-direct-perturbations108.jsonl",
+  "rows_compared": 108,
+  "identity_ok": true,
+  "numeric_ok": false,
+  "excluded_fields": [
+    "model.serving_config",
+    "readout"
+  ],
+  "argmax_agreement": 0.9722222222222222,
+  "full_vocab_argmax_agreement": null,
+  "finding_count": 298,
+  "findings": [
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 19.75,
+      "b": 19.875,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 19.25,
+      "b": 19.375,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.5,
+      "b": 25.625,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.9810208995197683,
+      "b": 0.9832135671365115,
+      "abs_delta": 0.0021926676167431935
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.015856726000265393,
+      "b": 0.014024788304136743,
+      "abs_delta": 0.00183193769612865
+    },
+    {
+      "field": "option_logits",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 25.0,
+      "b": 25.125,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 20.625,
+      "b": 20.5,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.1315286875060023,
+      "b": 0.11818241325439562,
+      "abs_delta": 0.013346274251606685
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.8576747803610641,
+      "b": 0.8732564814437344,
+      "abs_delta": 0.015581701082670207
+    },
+    {
+      "field": "probabilities",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 0.010796532132933414,
+      "b": 0.008561105301869917,
+      "abs_delta": 0.0022354268310634962
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 22.5,
+      "b": 22.375,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 26.625,
+      "b": 26.5,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 23.125,
+      "b": 23.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.31953086132771796,
+      "b": 0.29298538540036556,
+      "abs_delta": 0.026545475927352402
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.6764468387390412,
+      "b": 0.7028354025303654,
+      "abs_delta": 0.02638856379132415
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 21.875,
+      "b": 22.0,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 2,
+      "issue": "gate_exceeded",
+      "a": 26.125,
+      "b": 26.25,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "option_logits",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 27.375,
+      "b": 27.25,
+      "abs_delta": 0.125
+    },
+    {
+      "field": "probabilities",
+      "index": 0,
+      "issue": "gate_exceeded",
+      "a": 0.9873932566994382,
+      "b": 0.9857386270203354,
+      "abs_delta": 0.0016546296791027926
+    },
+    {
+      "field": "probabilities",
+      "index": 1,
+      "issue": "gate_exceeded",
+      "a": 0.012429446764552675,
+      "b": 0.014060806348953838,
+      "abs_delta": 0.0016313595844011635
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "semif-rs-speed-ledger-v1",
+  "fixture": "benchmarks/data/shape777.jsonl",
+  "rows": 777,
+  "scope": "Wall time on this machine for one warm-to-cold pass including prompt construction, tokenization, transfers, forward passes and readout. Compared only against itself: the committed RTX 3090 numbers are a different device and are never a target.",
+  "note": "Rust serial/shared run as documented fresh-recompute under the trace route (no prefix-cache reuse yet), so their numbers are not a like-for-like comparison against Python's cache-reusing paths.",
+  "host": "Linux-6.17.0-35-generic-x86_64-with-glibc2.39",
+  "entries": [
+    {
+      "side": "python",
+      "mode": "direct",
+      "status": "ok",
+      "wall_seconds": 596.515,
+      "decisions_per_second": 1.303,
+      "rows": 777,
+      "determinism": "identity-exact"
+    },
+    {
+      "side": "python",
+      "mode": "serial",
+      "status": "ok",
+      "wall_seconds": 100.649,
+      "decisions_per_second": 7.72,
+      "rows": 777,
+      "determinism": "identity-exact"
+    },
+    {
+      "side": "python",
+      "mode": "shared",
+      "status": "ok",
+      "wall_seconds": 125.977,
+      "decisions_per_second": 6.168,
+      "rows": 777,
+      "determinism": "identity-exact"
+    },
+    {
+      "side": "rust",
+      "mode": "direct",
+      "status": "ok",
+      "wall_seconds": 1056.866,
+      "decisions_per_second": 0.735,
+      "rows": 777,
+      "determinism": "identity-exact"
+    },
+    {
+      "side": "rust",
+      "mode": "serial",
+      "status": "ok",
+      "wall_seconds": 789.131,
+      "decisions_per_second": 0.985,
+      "rows": 777,
+      "determinism": "identity-exact"
+    },
+    {
+      "side": "rust",
+      "mode": "shared",
+      "status": "ok",
+      "wall_seconds": 795.164,
+      "decisions_per_second": 0.977,
+      "rows": 777,
+      "determinism": "identity-exact"
+    }
+  ]
+}

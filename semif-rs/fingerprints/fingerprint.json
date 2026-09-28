@@ -1,0 +1,101 @@
+[
+  {
+    "case": "authored144/direct",
+    "rows": 144,
+    "python": {
+      "accuracy": 0.8125,
+      "mean_family_balanced_accuracy": 0.8224974200206399,
+      "mean_family_macro_f1": 0.8123861410789516,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "rust": {
+      "accuracy": 0.8055555555555556,
+      "mean_family_balanced_accuracy": 0.8132381607613807,
+      "mean_family_macro_f1": 0.8043531917416544,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "decision_agreement": 0.9930555555555556,
+    "decision_flips": [
+      "d6de731cca52359b1c87"
+    ]
+  },
+  {
+    "case": "authored144/reranker",
+    "rows": 144,
+    "python": {
+      "accuracy": 0.6388888888888888,
+      "mean_family_balanced_accuracy": 0.6316092518878896,
+      "mean_family_macro_f1": 0.5868799184482415,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "rust": {
+      "accuracy": 0.6180555555555556,
+      "mean_family_balanced_accuracy": 0.6157362360148738,
+      "mean_family_macro_f1": 0.5674813679727889,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "decision_agreement": 0.9583333333333334,
+    "decision_flips": [
+      "005dcf6d2c0f21d64796",
+      "2708193212d8a4a523c7",
+      "3f783eec5c90812479bc",
+      "46b7029b9a704138b77a",
+      "be2dd67bc733c1213bef",
+      "cdfa9eed51fafcf09b72"
+    ]
+  },
+  {
+    "case": "perturbations108/direct",
+    "rows": 108,
+    "python": {
+      "accuracy": 0.7685185185185185,
+      "mean_family_balanced_accuracy": 0.7737213403880071,
+      "mean_family_macro_f1": 0.8003535971712227,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "rust": {
+      "accuracy": 0.7592592592592593,
+      "mean_family_balanced_accuracy": 0.7640211640211639,
+      "mean_family_macro_f1": 0.7884051376705892,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "decision_agreement": 0.9722222222222222,
+    "decision_flips": [
+      "9e00994bdec725f3dba5",
+      "bd04047294bf97c56669",
+      "c62600144038b1f20132"
+    ]
+  },
+  {
+    "case": "perturbations108/reranker",
+    "rows": 108,
+    "python": {
+      "accuracy": 0.48148148148148145,
+      "mean_family_balanced_accuracy": 0.5738977072310406,
+      "mean_family_macro_f1": 0.5140546964076376,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "rust": {
+      "accuracy": 0.4722222222222222,
+      "mean_family_balanced_accuracy": 0.5694885361552028,
+      "mean_family_macro_f1": 0.5043705547652917,
+      "coverage": 1.0,
+      "invalid_or_missing": 0
+    },
+    "decision_agreement": 0.9537037037037037,
+    "decision_flips": [
+      "0471c62c50820b1d4203",
+      "24c4e34db7cfbd13c409",
+      "4c5cb6822a27c029976a",
+      "7c1aefb79903e6234b4b",
+      "d89ff26feee2aab0c674"
+    ]
+  }
+]
