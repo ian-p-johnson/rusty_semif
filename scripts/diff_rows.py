@@ -1,9 +1,12 @@
 """Row-level differential verifier for scorer outputs (PORTING_RUST.md §6).
 
 Compares two semif-score JSONL outputs joined by row id under three field classes:
-  identity-exact    must be equal (ids, prompt_sha256, option_ids, serving_config, ...)
-  numeric-gated     compared under a profile's tolerances (logits, probabilities, mass)
-  timing-excluded   *_seconds / shared_timing blocks; presence-checked only
+  identity-exact    must be equal (ids, prompt_sha256, option_ids, serving_config,
+                    plus the reranker's option_prompt_sha256 / max_option_input_tokens)
+  numeric-gated     compared under a profile's tolerances (logits, probabilities,
+                    independent_binary_relevance, mass)
+  timing-excluded   *_seconds / shared_timing / pair_batches blocks; presence-checked
+                    at the top level only, never value-compared
 
 Profiles:
   cpufp32    torch-CPU fp32 oracle vs engine: slot-logit |delta| <= 1e-4
@@ -25,10 +28,12 @@ import numpy as np
 
 IDENTITY_FIELDS = ("id", "option_ids", "prompt_sha256", "prompt_version", "readout",
                    "probability_status", "input_tokens", "answer_token_ids", "prefix_tokens",
-                   "prefix_sha256", "cache_hit", "batch_size")
+                   "prefix_sha256", "cache_hit", "batch_size",
+                   # reranker: per-option prompt hashes and the widest pair
+                   "option_prompt_sha256", "max_option_input_tokens")
 IDENTITY_MODEL_FIELDS = ("source", "revision", "dtype", "serving_config", "backend", "gguf")
 PRESENCE_MODEL_FIELDS = ("torch_version", "transformers_version", "llama_cpp_python_version")
-NUMERIC_VECTOR_FIELDS = ("option_logits", "probabilities")
+NUMERIC_VECTOR_FIELDS = ("option_logits", "probabilities", "independent_binary_relevance")
 NUMERIC_SCALAR_FIELDS = ("allowed_token_mass",)
 PROFILE_GATES = {
     # scalar_rel 2e-4: traced-vs-eager fusion deltas reach the mass through
@@ -63,7 +68,9 @@ def compare_vector(field, a, b, gates, findings, bf16: bool) -> bool:
     if len(a) != len(b):
         findings.append({"field": field, "issue": "length_mismatch", "a": len(a), "b": len(b)})
         return False
-    tolerance = gates["prob_abs"] if field == "probabilities" else gates["logit_abs"]
+    # Only option_logits carry the bf16-snap treatment; probabilities and the
+    # reranker's independent relevance are bounded [0,1] values gated absolutely.
+    tolerance = gates["logit_abs"] if field == "option_logits" else gates["prob_abs"]
     okay = True
     for index, (x, y) in enumerate(zip(a, b)):
         if bf16:
@@ -104,7 +111,7 @@ def compare(row_a: dict, row_b: dict, gates: dict, intersection: bool = False,
             if not compare_vector(field, row_a[field], row_b[field], gates, findings,
                                   bf16=bool(gates.get("bf16_snap")) and field == "option_logits"):
                 numeric_ok = False
-        elif field in ("probabilities",) and (field in row_a) != (field in row_b):
+        elif (field in row_a) != (field in row_b):
             numeric_ok = False
             findings.append({"field": field, "issue": "missing_in_one_side"})
     for field in NUMERIC_SCALAR_FIELDS:
@@ -121,7 +128,11 @@ def compare(row_a: dict, row_b: dict, gates: dict, intersection: bool = False,
     argmax_b = int(np.argmax(row_b["probabilities"])) if "probabilities" in row_b else None
     decision = {
         "argmax_agrees": None if argmax_a is None or argmax_b is None else argmax_a == argmax_b,
-        "full_vocab_argmax_agrees": (None if "full_vocab_argmax_id" not in row_a and "full_vocab_argmax_id" not in row_b
+        # Both sides must carry the field: `direct.score` never emits
+        # full_vocab_argmax_id, so a one-sided presence means "not comparable",
+        # not "disagrees".
+        "full_vocab_argmax_agrees": (None if "full_vocab_argmax_id" not in row_a
+                                     or "full_vocab_argmax_id" not in row_b
                                      else row_a.get("full_vocab_argmax_id") == row_b.get("full_vocab_argmax_id")),
     }
     if decision["argmax_agrees"] is False or decision["full_vocab_argmax_agrees"] is False:
@@ -163,6 +174,7 @@ def main() -> None:
         "rows_compared": len(results),
         "identity_ok": all(r["identity_ok"] for r in results),
         "numeric_ok": all(r["numeric_ok"] for r in results),
+        "excluded_fields": sorted(excluded),
         "argmax_agreement": sum(argmax) / len(argmax) if argmax else None,
         "full_vocab_argmax_agreement": sum(vocab) / len(vocab) if vocab else None,
         "finding_count": sum(len(r["findings"]) for r in results),
