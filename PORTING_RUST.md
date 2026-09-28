@@ -894,3 +894,91 @@ lengths** for this hybrid architecture (eager-vs-traced Δ = 24 on a
 Stage 4 next: evidence integration — accuracy fingerprints (authored144,
 perturbations108, shape777) through the unmodified Python evaluators on
 Rust-produced files, plus the timing ledger on an idle machine.
+
+### Stage 3 — reranker tail complete (2026-09-27)
+
+The reranker now runs end to end on the traced CUDA/BF16 route, with its own
+fixtures, exporter and gates. One gate is **missed and escalated** rather than
+absorbed; the rest are green.
+
+- **Fixtures** (`benchmarks/export_reranker_fixtures.py`, create-only):
+  330 rows / 929 pairs from three sources (Stage 0 corpus + shape777's first
+  three states) plus two synthetic rows pinning the `provenance.experiment`
+  instruction branches. `reranker_prompts.jsonl` (full text + sha256),
+  `reranker_tokens.jsonl` (ids + row width), `reranker_refusals.jsonl`,
+  `reranker_answers.json`, `reranker_rows.jsonl`, manifest with
+  `corpus_sha256 7ab1162e…`. The corpus ships its own row file because it
+  spans three sources and two clones — reconstructing it from `inputs.jsonl`
+  would have been a silent gap.
+- **Four Rust fixture gates, all green on first run** (`reranker_corpus.rs`):
+  prompt text **and** sha256 byte-equal over 929 pairs; token ids + row width;
+  the yes/no answer contract (encode *and* `token_to_id`); over-budget refusal
+  messages exact.
+- **Export** (`benchmarks/export_reranker_trace.py`): traced
+  `(input_ids[B,W], attention_mask, position_ids) -> [B,V]` at `W=2048`,
+  artifact 7672 MiB, check rows chosen to **span the corpus width range**
+  (97 → 1754 tokens, not the shortest six). Gates: worst eager-vs-traced
+  Δ = **0.3125**, batch-1 Δ = **0.375**, both under the 0.51 tolerance;
+  per-option full-vocabulary sha256 recorded for the bit-exactness gate.
+
+Four findings, each measured rather than assumed:
+
+1. **The reranker tokenizer is the slow `Qwen2Tokenizer`**, so §4.2's
+   "fast tokenizers are already Rust" did not transfer by default. Its shipped
+   `tokenizer.json` reproduces it exactly — 432/432 authored pairs identical
+   through the `tokenizers` path — so the harness works, but the parity had to
+   be *shown*, not inherited.
+2. **The layout must reproduce Python's position shift, not remove it.**
+   `score_pair_batch` left-pads each option to the row's widest pair and lets
+   the model default to `position_ids = arange(width)`, so shorter options run
+   at shifted RoPE offsets. A control that dropped the left pad moved logits by
+   **14–20**; reproducing the shift lands at 0.12. The trace right-aligns each
+   option so `logits[:, -1, :]` is the last real token, and offsets positions
+   by `width - row_width`.
+3. **`torch.jit.trace` does not bake the batch dimension here** — a B=1 input
+   runs on a B=3 trace — so the wrapper stays batch-flexible and a row's
+   options are scored in one forward, matching Python's per-row pairing.
+4. **Python's `str(state)` is a second writer surface.** Dict/list states
+   interpolate with `str()` (repr form), not `json.dumps`. `semif-core/reranker.rs`
+   implements CPython's quote selection and escapes; byte-equality over the
+   fixture corpus is the gate, so an unhandled class would fail loudly rather
+   than silently.
+
+**Gates**
+
+| Gate | Result |
+|---|---|
+| Fixture gates (prompt / tokens / answers / refusals) | **pass**, 929 pairs |
+| Bit-exactness vs the exporter's trace capture | **pass** — sha256 over all 151,669 floats, **15/15 option pairs** |
+| Port fidelity: Python trace probe vs Rust run (144 rows) | **pass** — identity-exact, **0 numeric findings**, **100%** decision agreement |
+| Decision agreement vs eager Python oracle (144 rows) | **95.83%** (6 flips) — **miss of the ≥99% gate, escalated below** |
+| Export padding-invariance (eager vs traced) | pass, 0.3125 / 0.375 vs 0.51 |
+
+**Escalation: the reranker's 95.83% belongs to the route, not the port.** This
+is an attribution, not an argument:
+
+- The port is bit-exact against the traced graph (above), so
+  *port-vs-eager ≡ trace-vs-eager*.
+- The route's own divergence reproduces it with no Rust involved: running the
+  **eager weights at two different widths** already gives max logit Δ = 0.25 and
+  **5 of the same 6 flips**. Trace fusion adds roughly one more.
+- Narrowing the width does not help: **97.2% at W=256, 96.5% at 512, 95.8% at
+  1024, 96.5% at 2048** — this is bf16 kernel-shape sensitivity, not an
+  over-padded width.
+- The corpus is the other half: reranker log-odds are a two-way yes/no per
+  option, so authored144's median top-2 gap is **0.26** with 72/144 rows under
+  0.65, against direct's 0.94. Every flipped row sits at a gap ≤ 0.128.
+
+Reaching ≥99% therefore needs **dynamic shapes** — the hand-written eager layer
+stack the Stage 3 re-scope traded for a traced graph. Under the approved route
+the honest number is 95.8%, recorded here rather than re-thresholded.
+
+Also landed this tail: `--mode reranker` wiring in `semif-cli` (CUDA-only,
+mirroring Python's device refusal *after* row validation, so bad rows still
+exit 1 first); `Engine::score_reranker`; and two new CLI refusal tests
+(workspace tests 27 → 37). The run-level "`max-tokens` smaller than trace
+width" guard was **removed** from the direct branch: it rejected runs whose
+rows all fit, while the per-row refusal already handles overflow — the reranker
+branch never had it, and neither now does Python.
+
+Stage 4 next: evidence integration.
