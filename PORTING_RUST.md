@@ -982,3 +982,120 @@ rows all fit, while the per-row refusal already handles overflow — the reranke
 branch never had it, and neither now does Python.
 
 Stage 4 next: evidence integration.
+
+### Stage 4 — evidence integration complete (2026-09-28)
+
+The Rust scorer now produces evidence files that the **unmodified Python
+evaluators** grade, under a one-command check that brackets the work with the
+repo's own integrity gates.
+
+**Deliverables**
+
+- `scripts/run_stage4_scores.sh` — restartable, idempotent; discards any
+  truncated output and re-runs it. Seven same-device Python baselines in
+  `semif-rs/runs/`, seven Rust files in `semif-rs/results/` (authored144 and
+  perturbations108 direct + reranker; shape777 direct/serial/shared). Every
+  output create-only; `results/` untouched.
+- `scripts/fingerprint_port.py` — grades *both* sides with the shipped
+  `benchmarks/evaluate.py` and prints the comparison table. Reports land in
+  `semif-rs/fingerprints/`.
+- `scripts/verify_port.sh` — the Stage 4 exit criterion: integrity → oracle
+  tests → Rust fixture gates → bit-exactness → scoring → row diffs →
+  fingerprints → stability → integrity again.
+- `scripts/speed_ledger.sh` — timed shape777 passes that double as a
+  determinism check (each re-run is diffed against its evidence file).
+- `benchmarks/score_shared_chunked.py` — `--mode shared` over 777 rows OOMs a
+  12 GB card on the Python side (batch-21 cache replication never worked here);
+  chunking within each group at batch 7 is the established Stage 3 workaround,
+  now formalised rather than ad hoc.
+
+**Row-level parity — all seven identity-exact**
+
+| comparison | rows | identity | decisions |
+|---|---:|---|---:|
+| authored144 direct | 144 | ✓ | 99.31% |
+| authored144 reranker | 144 | ✓ | 95.83% |
+| perturbations108 direct | 108 | ✓ | 97.22% |
+| perturbations108 reranker | 108 | ✓ | 95.37% |
+| shape777 direct | 777 | ✓ | 99.36% |
+| shape777 serial | 777 | ✓ | 99.23% |
+| shape777 shared | 777 | ✓ | 99.36% |
+
+Numeric findings are the trace-fusion class already documented in Stage 3: they
+are reported, not gated, because the gate for this route is bit-exactness
+against the trace capture (reranker: 15/15 option pairs) plus decision
+agreement.
+
+**Fingerprints** (unmodified `evaluate.py`): authored144/direct Δbal-acc
+-0.93pp with 143/144 decisions; perturbations108/direct -0.97pp with 105/108;
+authored144/reranker -1.59pp with 138/144; perturbations108/reranker -0.44pp
+with 103/108. On corpora of 108–144 rows one flipped decision is worth ~0.7pp,
+so the plan's ±0.5pp envelope is finer than a single flip — the deltas are the
+flip ledger restated, not an independent signal.
+
+**Stability** (`evaluate_perturbations.py`, run once per side): mean maximum
+probability movement differs by at most **0.009** across all six variant/system
+cells.
+
+**Speed ledger** (777 rows, idle card, six for six identity-exact re-runs):
+
+| side | mode | wall (s) | decisions/s |
+|---|---|---:|---:|
+| python | direct (fresh) | 596.5 | 1.303 |
+| python | serial | 100.6 | 7.720 |
+| python | shared | 126.0 | 6.168 |
+| rust | direct | 1056.9 | 0.735 |
+| rust | serial | 789.1 | 0.985 |
+| rust | shared | 795.2 | 0.977 |
+
+Two readings, both recorded rather than spun:
+
+1. Rust serial/shared are **fresh recompute** — the trace has no prefix cache —
+   so the 6–8× gap against Python's cache-reusing paths is the cache, not the
+   language. It is the same limitation as Stage 3's `tch-trace-direct-v1`.
+2. Rust direct is **~1.8× slower than Python direct**, for a specific and
+   fixable reason: the direct wrapper gathers at `length - 1`, so it cannot pass
+   `logits_to_keep=1`, and every row materialises the full
+   `2048 × 248320` logits matrix before the gather while Python keeps one
+   position. Right-aligning the direct input the way the reranker wrapper
+   already does would remove it — but it would invalidate the recorded Stage 3
+   artifact and its gates, so it is logged as a follow-up, not done mid-gate.
+
+This matches laya's tempered expectation exactly: on GPU the win is not speed.
+
+**Instrument fixes made while gating** (all CPU-side, none change evidence):
+
+- `diff_rows.py` now treats `full_vocab_argmax_agrees` as *not comparable* when
+  only one side carries the field. `direct.score` never emits
+  `full_vocab_argmax_id`, so the metric had been reporting 0.0 against every
+  Python run — a presence artefact, not a disagreement.
+- `diff_rows.py` gained the reranker's identity fields
+  (`option_prompt_sha256`, `max_option_input_tokens`) and numeric vector
+  (`independent_binary_relevance`), and now records `excluded_fields` in every
+  report so route divergences are visible instead of inferred.
+- The direct branch's run-level `max-tokens`/width guard was removed (see
+  Stage 3 tail).
+
+**Documented exclusions** (per-pair, recorded in each report):
+`model.serving_config,readout` for direct/serial/shared (the trace stamps its
+own values); `model.serving_config` only for reranker, which copies Python's
+`readout` verbatim; plus `cache_hit,prefix_tokens,prefix_sha256,answer_token_ids`
+for serial, where Python stamps prefix-cache metadata on 740/777 rows and the
+Rust engine has no cache to describe — absent, not wrong.
+
+**Deferred, with reason:** the every-grid / WANLI / TypeSafe samples. §7 scopes
+the third-party fetch pipeline out of the port and no source snapshots exist on
+this machine; `benchmarks/data/` holds only the owned corpora, which are what
+Stage 4 graded.
+
+**Gates at exit:** `pytest -q` 67 passed / 3 skipped; `cargo test --workspace`
+37 passed; `cargo clippy --all-targets` 0 warnings; `cargo fmt --check` clean;
+`results/raw/SHA256SUMS` and `verify_published.py` clean **before and after**;
+`scripts/verify_port.sh` → *PORT CHECK: all gates passed*.
+
+Documentation: `docs/RUST_SCORER.md` (crates, run commands, field classes, the
+two numeric references, flip ledger, fingerprints, speed, limitations,
+provenance).
+
+Stage 5 (PyO3 wheel, standalone-binary packaging, CI rewiring) remains
+optional and unstarted.
