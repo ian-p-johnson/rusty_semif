@@ -1,0 +1,13 @@
+{
+  "no_ids": [
+    2152
+  ],
+  "yes_ids": [
+    9693
+  ],
+  "convert_tokens_to_ids_no": 2152,
+  "convert_tokens_to_ids_yes": 9693,
+  "prompt_version": "qwen3-reranker-native-options-v1",
+  "pad_token_id": 151643,
+  "eos_token_id": 151645
+}

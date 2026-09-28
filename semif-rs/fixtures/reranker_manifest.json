@@ -1,0 +1,10 @@
+{
+  "rows": 330,
+  "pairs": 929,
+  "shape_groups": 3,
+  "max_pair_tokens": 1755,
+  "row_width_min": 97,
+  "row_width_max": 1755,
+  "corpus_sha256": "7ab1162e14838eb0f80316f76102093c0f900ca7d6f70c0f161640ee226b9982",
+  "tokenizer": "/media/ianj/New Volume/hf-plain/models/Qwen3-Reranker-4B"
+}
