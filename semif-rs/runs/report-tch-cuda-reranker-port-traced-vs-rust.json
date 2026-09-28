@@ -1,0 +1,16 @@
+{
+  "schema": "semif-diff-rows-v1",
+  "profile": "cuda-bf16",
+  "file_a": "semif-rs/probes/reranker-trace-authored144.jsonl",
+  "file_b": "semif-rs/runs/rust-tch-cuda-reranker-authored144.jsonl",
+  "rows_compared": 144,
+  "identity_ok": true,
+  "numeric_ok": true,
+  "excluded_fields": [
+    "model.serving_config"
+  ],
+  "argmax_agreement": 1.0,
+  "full_vocab_argmax_agreement": null,
+  "finding_count": 0,
+  "findings": []
+}
