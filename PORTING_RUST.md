@@ -1037,7 +1037,8 @@ flip ledger restated, not an independent signal.
 probability movement differs by at most **0.009** across all six variant/system
 cells.
 
-**Speed ledger** (777 rows, idle card, six for six identity-exact re-runs):
+**Speed ledger** (777 rows; **numbers void — see the amendment below**, six
+for six identity-exact re-runs):
 
 | side | mode | wall (s) | decisions/s |
 |---|---|---:|---:|
@@ -1061,7 +1062,33 @@ Two readings, both recorded rather than spun:
    already does would remove it — but it would invalidate the recorded Stage 3
    artifact and its gates, so it is logged as a follow-up, not done mid-gate.
 
-This matches laya's tempered expectation exactly: on GPU the win is not speed.
+**Amendment — the ledger above is void, and so was the follow-up claim drawn
+from it.** Reported under a load average of ~4.5 with `opencode` and a browser
+active, *and* against `target/debug/semif-cli` rather than a release build, so
+it measured contention and the compiler as much as the port. Stage 0 set this
+precedent itself: timings taken under load are void and the baseline is
+deferred to an idle window. The **determinism** half of that run is unaffected
+— identity-exact agreement is not a timing claim — so the six re-runs still
+stand as evidence.
+
+`scripts/speed_ledger.sh` now uses the **release** profile, refuses to start
+when the 1-minute load average exceeds `nproc/4`
+(`SEMIF_MAX_LOAD_1MIN` overrides), and records the load it ran under inside the
+ledger JSON. The ledger must be re-taken on a quiet machine before any speed
+number here is quoted.
+
+One specific claim did not survive measurement. The Stage 4 follow-up said the
+direct wrapper cannot pass `logits_to_keep=1` and that this cost ~1.8x.
+`benchmarks/measure_readout_layout.py` (interleaved, so load drift hits every
+configuration equally) found the saving is **~3%**, because this checkpoint's
+forward is dominated by the reference `chunk_gated_delta_rule` and
+`causal_conv1d` fallbacks rather than the lm_head; the traced artifact also runs
+at 0.98x the same shape run eagerly, so trace fusion is not the cost either.
+Re-exporting the direct trace would invalidate every recorded direct-mode parity
+report and the Stage 4 direct evidence for that ~3%. **Decision: do not change
+the wrapper** — measure and report, do not optimise. The instrument is
+committed so the question can be re-answered properly under the conditions
+above.
 
 **Instrument fixes made while gating** (all CPU-side, none change evidence):
 

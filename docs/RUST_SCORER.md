@@ -170,34 +170,58 @@ rows a single flipped decision is worth ~0.7pp of accuracy, so the plan's
 
 ## Speed
 
-`semif-rs/fingerprints/speed-ledger.json`, 777 rows, one machine, nothing else
-on the card, each re-run diffed against the Stage 4 evidence file:
+**Status: the recorded ledger is void and must be re-taken.** Two faults:
 
-| side | mode | wall (s) | decisions/s | determinism |
-|---|---|---:|---:|---|
-| python | direct (fresh) | 596.5 | 1.303 | identity-exact |
-| python | serial | 100.6 | 7.720 | identity-exact |
-| python | shared | 126.0 | 6.168 | identity-exact |
-| rust | direct | 1056.9 | 0.735 | identity-exact |
-| rust | serial | 789.1 | 0.985 | identity-exact |
-| rust | shared | 795.2 | 0.977 | identity-exact |
+1. It timed `target/debug/semif-cli` — an unoptimised Rust glue path — against
+   optimised Python, so it measured the compiler as much as the port.
+2. The machine was shared during the run (`opencode` and a browser active).
+   Stage 0 set this precedent explicitly: timings taken under load are void and
+   the baseline is deferred to an idle window.
 
-Read it with the two caveats the plan already states:
+What *does* survive from that run is the determinism check, which is not a
+timing claim: all six re-runs came back **identity-exact** against their
+Stage 4 evidence files.
 
-1. **Rust serial/shared are fresh recompute** — there is no prefix cache in the
-   trace — so they are *not* a like-for-like comparison against Python's
-   cache-reusing paths. The 6–8× gap is the cache, not the language.
-2. **Rust direct is ~1.8× slower than Python direct**, and the cause is
-   specific: the direct wrapper gathers at `length - 1`, which means it cannot
-   pass `logits_to_keep=1`, so every row materialises the full
-   `2048 × 248320` logits matrix before the gather. Python keeps a single
-   position. Right-aligning the direct input the way the reranker wrapper does
-   (which does use `logits_to_keep=1`) would remove this; it would also
-   invalidate the recorded Stage 3 artifact and its gates, so it is recorded
-   here as a follow-up rather than done mid-verification.
+`scripts/speed_ledger.sh` now uses the **release** profile, refuses to start
+when the 1-minute load average exceeds a quarter of the cores
+(`SEMIF_MAX_LOAD_1MIN` overrides), and records the load it ran under inside
+`semif-rs/fingerprints/speed-ledger.json`. Re-run it when the box is quiet:
 
-Six for six re-runs came back identity-exact, so both engines are deterministic
-on this machine as well.
+```bash
+cargo build --release         # the ledger times the release binary
+scripts/speed_ledger.sh       # refuses to run if load > nproc/4
+```
+
+### One claim measured and rejected
+
+A Stage 4 follow-up proposed re-exporting the direct trace with
+`logits_to_keep=1`, on the theory that the wrapper's length-gather forces a
+full `W x 248320` logits matrix every row and that this explained ~1.8x.
+`benchmarks/measure_readout_layout.py` tested it (interleaved, so load drift
+hits all configurations equally):
+
+| config | what it is | result |
+|---|---|---|
+| A | eager, unpadded, `logits_to_keep=1` — the Python oracle | baseline |
+| B | eager, right-padded, full logits + gather — the current trace | ~1.16x A |
+| C | eager, left-padded, `logits_to_keep=1` — the proposal | ~1.12x A |
+| D | the existing traced artifact | ~1.13x A, ~0.98x B |
+
+Three findings:
+
+- **`logits_to_keep` saves ~3%**, not 1.8x. This checkpoint's forward is
+  dominated by the reference `chunk_gated_delta_rule` and `causal_conv1d`
+  fallbacks (both warn loudly at import), so the lm_head share is small.
+- **Trace fusion costs nothing** — D is marginally *faster* than the same shape
+  run eagerly (0.98x B).
+- The proposal would also have to be re-gated: it changes the direct artifact,
+  invalidating every recorded direct-mode parity report and the Stage 4 direct
+  evidence.
+
+**Recommendation: do not change the wrapper.** The measured benefit is within
+noise of the cost of re-gating, and the policy is to measure and report rather
+than optimise. The instrument is committed so the question can be re-answered
+properly on a quiet machine with a release build.
 
 ## Known limitations
 
