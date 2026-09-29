@@ -170,58 +170,74 @@ rows a single flipped decision is worth ~0.7pp of accuracy, so the plan's
 
 ## Speed
 
-**Status: the recorded ledger is void and must be re-taken.** Two faults:
+`semif-rs/fingerprints/speed-ledger.json` — 777 rows, release build, machine
+quiet (1-minute load 1.61 against a `nproc/4 = 5` ceiling, recorded in the
+file), GPU to itself, each re-run diffed against its Stage 4 evidence file:
 
-1. It timed `target/debug/semif-cli` — an unoptimised Rust glue path — against
-   optimised Python, so it measured the compiler as much as the port.
-2. The machine was shared during the run (`opencode` and a browser active).
-   Stage 0 set this precedent explicitly: timings taken under load are void and
-   the baseline is deferred to an idle window.
+| side | mode | wall (s) | decisions/s | determinism |
+|---|---|---:|---:|---|
+| python | direct (fresh) | 601.7 | 1.291 | identity-exact |
+| python | serial | 101.3 | 7.667 | identity-exact |
+| python | shared | 122.3 | 6.354 | identity-exact |
+| rust | direct | 704.2 | 1.103 | identity-exact |
+| rust | serial | 704.0 | 1.104 | identity-exact |
+| rust | shared | 703.9 | 1.104 | identity-exact |
 
-What *does* survive from that run is the determinism check, which is not a
-timing claim: all six re-runs came back **identity-exact** against their
-Stage 4 evidence files.
+Three readings:
 
-`scripts/speed_ledger.sh` now uses the **release** profile, refuses to start
-when the 1-minute load average exceeds a quarter of the cores
-(`SEMIF_MAX_LOAD_1MIN` overrides), and records the load it ran under inside
-`semif-rs/fingerprints/speed-ledger.json`. Re-run it when the box is quiet:
+1. **On GPU the port is essentially speed-neutral on direct: 1.17x.** The
+   forward alone accounts for 1.13x of that (850.5 vs 750.7 ms/row measured
+   separately), so the Rust glue adds roughly 3% on top of the fixed-width
+   forward. This is laya's tempered expectation confirmed: at 4B the kernels
+   dominate, and there is no language win to be had.
+2. **Rust serial/shared deliver ~14–17% of Python's rate**, because the trace
+   has no prefix cache and they run as fresh recompute. That gap is the cache —
+   Python's serial path is 6.9x faster than its own fresh path on the same
+   hardware — not the language. It is the same limitation stamped in
+   `serving_config = tch-trace-direct-v1`.
+3. **Six for six re-runs came back identity-exact**, so both engines are
+   deterministic on this machine.
 
-```bash
-cargo build --release         # the ledger times the release binary
-scripts/speed_ledger.sh       # refuses to run if load > nproc/4
-```
+### A voided attempt, kept for the record
+
+`semif-rs/fingerprints/speed-ledger-void-debug-contended.json` is the first
+attempt: 596–1057s with Rust at 0.74 d/s, implying a 1.77x gap. It is void on
+two counts — it timed `target/debug/semif-cli` against optimised Python, and
+the machine was shared during the run. Stage 0 set this exact precedent
+(timings taken under load are void; the baseline waits for an idle window).
+The re-take shows the debug binary alone cost the Rust path ~1.5x: 1056.9s
+became 704.2s with no source change. `scripts/speed_ledger.sh` now refuses to
+start above `nproc/4` (`SEMIF_MAX_LOAD_1MIN` overrides), times the release
+profile, and records the load and profile it ran under.
 
 ### One claim measured and rejected
 
 A Stage 4 follow-up proposed re-exporting the direct trace with
 `logits_to_keep=1`, on the theory that the wrapper's length-gather forces a
 full `W x 248320` logits matrix every row and that this explained ~1.8x.
-`benchmarks/measure_readout_layout.py` tested it (interleaved, so load drift
-hits all configurations equally):
+`benchmarks/measure_readout_layout.py` tested it on a quiet machine,
+interleaved round-robin so a load spike drifts all configurations together:
 
-| config | what it is | result |
-|---|---|---|
-| A | eager, unpadded, `logits_to_keep=1` — the Python oracle | baseline |
-| B | eager, right-padded, full logits + gather — the current trace | ~1.16x A |
-| C | eager, left-padded, `logits_to_keep=1` — the proposal | ~1.12x A |
-| D | the existing traced artifact | ~1.13x A, ~0.98x B |
+| config | what it is | ms/row | vs A |
+|---|---|---:|---:|
+| A | eager, unpadded, `logits_to_keep=1` — the Python oracle | 750.7 | 1.000 |
+| B | eager, right-padded, full logits + gather — the current trace | 864.6 | 1.152 |
+| C | eager, left-padded, `logits_to_keep=1` — the proposal | 832.4 | 1.109 |
+| D | the existing traced artifact | 850.5 | 1.133 (0.984 vs B) |
 
-Three findings:
+- **`logits_to_keep` saves 3.9%** (B vs C = 1.039), not 1.8x. This checkpoint's
+  forward is dominated by the reference `chunk_gated_delta_rule` and
+  `causal_conv1d` fallbacks — both warn at import — so the lm_head share is
+  small.
+- **Trace fusion costs nothing**: D runs at 0.984x the same shape eagerly.
+- The proposed layout also measures `max|Δlogit| = 3.125e-01` against the
+  oracle, the same padding-invariance class as the reranker export gate.
 
-- **`logits_to_keep` saves ~3%**, not 1.8x. This checkpoint's forward is
-  dominated by the reference `chunk_gated_delta_rule` and `causal_conv1d`
-  fallbacks (both warn loudly at import), so the lm_head share is small.
-- **Trace fusion costs nothing** — D is marginally *faster* than the same shape
-  run eagerly (0.98x B).
-- The proposal would also have to be re-gated: it changes the direct artifact,
-  invalidating every recorded direct-mode parity report and the Stage 4 direct
-  evidence.
-
-**Recommendation: do not change the wrapper.** The measured benefit is within
-noise of the cost of re-gating, and the policy is to measure and report rather
-than optimise. The instrument is committed so the question can be re-answered
-properly on a quiet machine with a release build.
+**Recommendation: do not change the wrapper.** Re-exporting invalidates every
+recorded direct-mode parity report and the Stage 4 direct evidence to buy 3.9%
+that sits inside the noise of a shared box. The policy is to measure and
+report, not optimise; the instrument is committed so the question can be
+re-answered under better conditions than these.
 
 ## Known limitations
 

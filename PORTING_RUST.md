@@ -1037,58 +1037,54 @@ flip ledger restated, not an independent signal.
 probability movement differs by at most **0.009** across all six variant/system
 cells.
 
-**Speed ledger** (777 rows; **numbers void — see the amendment below**, six
-for six identity-exact re-runs):
+**Speed ledger** (777 rows; release build; 1-minute load 1.61 against a
+`nproc/4 = 5` ceiling, recorded in the file; six for six identity-exact
+re-runs):
 
 | side | mode | wall (s) | decisions/s |
 |---|---|---:|---:|
-| python | direct (fresh) | 596.5 | 1.303 |
-| python | serial | 100.6 | 7.720 |
-| python | shared | 126.0 | 6.168 |
-| rust | direct | 1056.9 | 0.735 |
-| rust | serial | 789.1 | 0.985 |
-| rust | shared | 795.2 | 0.977 |
+| python | direct (fresh) | 601.7 | 1.291 |
+| python | serial | 101.3 | 7.667 |
+| python | shared | 122.3 | 6.354 |
+| rust | direct | 704.2 | 1.103 |
+| rust | serial | 704.0 | 1.104 |
+| rust | shared | 703.9 | 1.104 |
 
 Two readings, both recorded rather than spun:
 
-1. Rust serial/shared are **fresh recompute** — the trace has no prefix cache —
-   so the 6–8× gap against Python's cache-reusing paths is the cache, not the
-   language. It is the same limitation as Stage 3's `tch-trace-direct-v1`.
-2. Rust direct is **~1.8× slower than Python direct**, for a specific and
-   fixable reason: the direct wrapper gathers at `length - 1`, so it cannot pass
-   `logits_to_keep=1`, and every row materialises the full
-   `2048 × 248320` logits matrix before the gather while Python keeps one
-   position. Right-aligning the direct input the way the reranker wrapper
-   already does would remove it — but it would invalidate the recorded Stage 3
-   artifact and its gates, so it is logged as a follow-up, not done mid-gate.
+1. **On GPU the port is speed-neutral on direct: 1.17x.** The forward alone is
+   1.13x (850.5 vs 750.7 ms/row, measured separately), so the Rust glue adds
+   ~3% on top of the fixed-width forward — laya's tempered expectation
+   confirmed: at 4B the kernels dominate and there is no language win here.
+2. **Rust serial/shared deliver 14–17% of Python's rate because they have no
+   prefix cache**, running as fresh recompute under `tch-trace-direct-v1`.
+   Python's own serial path is 6.9x faster than its own fresh path on this
+   hardware, so the gap is the cache, not the language.
 
-**Amendment — the ledger above is void, and so was the follow-up claim drawn
-from it.** Reported under a load average of ~4.5 with `opencode` and a browser
-active, *and* against `target/debug/semif-cli` rather than a release build, so
-it measured contention and the compiler as much as the port. Stage 0 set this
-precedent itself: timings taken under load are void and the baseline is
-deferred to an idle window. The **determinism** half of that run is unaffected
-— identity-exact agreement is not a timing claim — so the six re-runs still
-stand as evidence.
+**The first attempt at this ledger was void, and the re-take is what exposed
+it.** The initial numbers (596–1057s, Rust 0.74 d/s, a 1.77x gap) were taken
+against `target/debug/semif-cli` while the machine was shared — two faults
+Stage 0 already ruled on for itself: timings taken under load are void and the
+baseline waits for an idle window. Re-running properly showed the debug binary
+alone cost the Rust path ~1.5x (1056.9s → 704.2s with no source change), so
+most of the apparent gap was the compiler. The voided file is kept as
+`semif-rs/fingerprints/speed-ledger-void-debug-contended.json`.
+`scripts/speed_ledger.sh` now times the release profile, refuses to start above
+`nproc/4` (`SEMIF_MAX_LOAD_1MIN` overrides), and records the load and profile
+it ran under.
 
-`scripts/speed_ledger.sh` now uses the **release** profile, refuses to start
-when the 1-minute load average exceeds `nproc/4`
-(`SEMIF_MAX_LOAD_1MIN` overrides), and records the load it ran under inside the
-ledger JSON. The ledger must be re-taken on a quiet machine before any speed
-number here is quoted.
-
-One specific claim did not survive measurement. The Stage 4 follow-up said the
+**A related claim was measured and rejected.** The Stage 4 follow-up said the
 direct wrapper cannot pass `logits_to_keep=1` and that this cost ~1.8x.
-`benchmarks/measure_readout_layout.py` (interleaved, so load drift hits every
-configuration equally) found the saving is **~3%**, because this checkpoint's
-forward is dominated by the reference `chunk_gated_delta_rule` and
-`causal_conv1d` fallbacks rather than the lm_head; the traced artifact also runs
-at 0.98x the same shape run eagerly, so trace fusion is not the cost either.
-Re-exporting the direct trace would invalidate every recorded direct-mode parity
-report and the Stage 4 direct evidence for that ~3%. **Decision: do not change
-the wrapper** — measure and report, do not optimise. The instrument is
-committed so the question can be re-answered properly under the conditions
-above.
+`benchmarks/measure_readout_layout.py`, run quiet and interleaved so load
+drift hits every configuration equally, measured A (oracle) 750.7, B (current
+trace semantics) 864.6, C (proposal) 832.4, D (traced artifact) 850.5 ms/row:
+the saving is **3.9%**, because this checkpoint's forward is dominated by the
+reference `chunk_gated_delta_rule` and `causal_conv1d` fallbacks rather than
+the lm_head, and D runs at 0.984x the same shape eagerly so trace fusion is not
+the cost either. Re-exporting would invalidate every recorded direct-mode
+parity report and the Stage 4 direct evidence to buy 3.9%. **Decision: do not
+change the wrapper** — measure and report, do not optimise. The instrument is
+committed so the question can be re-answered properly.
 
 **Instrument fixes made while gating** (all CPU-side, none change evidence):
 
